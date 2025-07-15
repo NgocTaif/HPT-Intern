@@ -52,7 +52,7 @@ cd dvwa/config
 
 - Ta sẽ thấy file mẫu `config.inc.php.dist`:
 
-![alt text](images/img (2).png)
+![alt text](images/img(2).png)
 
 ---
 
@@ -83,7 +83,7 @@ GRANT ALL ON dvwa.* TO 'admin'@'127.0.0.1'; // Cấp toàn quyền truy cập DB
 FLUSH PRIVILEGES; // Cập nhật lại các quyền
 ```
 
-![alt text](images/img (3).png)
+![alt text](images/img(3).png)
 ---
 
 ### Bước 7: Cập nhật cấu hình kết nối database
@@ -97,7 +97,7 @@ FLUSH PRIVILEGES; // Cập nhật lại các quyền
 sudo nano /var/www/html/dvwa/config/config.inc.php
 ```
 
-![alt text](images/img (4).png)
+![alt text](images/img(4).png)
 
 - Sửa các dòng:
 
@@ -129,7 +129,7 @@ allow_url_include = On
 allow_url_fopen = On
 ```
 
-![alt text](images/img (5).png)
+![alt text](images/img(5).png)
 
 ---
 
@@ -152,7 +152,7 @@ sudo systemctl restart/start apache2
 http://127.0.0.1/dvwa/
 ```
 
-![alt text](images/img (6).png)
+![alt text](images/img(6).png)
 
 ---
 
