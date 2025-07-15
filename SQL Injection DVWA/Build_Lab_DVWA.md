@@ -36,7 +36,7 @@ sudo git clone https://github.com/digininja/DVWA.git
 sudo mv DVWA dvwa
 sudo chmod -R 777 dvwa
 ```
-![alt text](images/img (1).png)
+![alt text](images/img(1).png)
 ---
 
 ### Bước 4: Cấu hình file cấu hình
