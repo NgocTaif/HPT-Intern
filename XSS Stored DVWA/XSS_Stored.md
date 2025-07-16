@@ -1,102 +1,115 @@
-# BÁO CÁO QUÁ TRÌNH KHAI THÁC XSS DOM (LOW, MEDIUM, HIGH)
+# BÁO CÁO QUÁ TRÌNH KHAI THÁC XSS Stored (LOW, MEDIUM, HIGH)
 
 ---
 
-## 1. XSS DOM (LOW)
+## 1. XSS STORED (LOW)
 
-Đầu tiên, giao diện ban đầu là một page select option:
+Đầu tiên, giao diện xuất hiện với hai *text field* cho phép người dùng nhập dữ liệu là *name* và *message*:
 
-<img width="1539" height="649" alt="image" src="https://github.com/user-attachments/assets/696b643a-197d-427d-835b-da16d0188a68" />
+<img width="1538" height="680" alt="image" src="https://github.com/user-attachments/assets/28a77458-ed02-43cf-a9c8-413f528912aa" />
 
-Kiểm tra page source, và có thể thấy điểm đặc biệt của đoạn mã sau:
+Kiểm tra page source thì nhận thấy trường name chỉ có thể nhập tối đa 10 ký tự, trong khi message là 50 ký tự:
 
-<img width="1533" height="361" alt="image" src="https://github.com/user-attachments/assets/16d3fe20-622e-4ac7-8d0f-5648737e8058" />
+<img width="1534" height="649" alt="image" src="https://github.com/user-attachments/assets/344d69ca-06bc-445c-b62f-9ba243011b4f" />
 
-Đầu tiên, nó kiểm tra xem trong URL hiện tại có chứa chuỗi *"default="* hay không, tức là kiểm tra để lấy giá trị trong URL, và nếu có, thì giá trị ở phần sau *“default=”* sẽ được cắt và gán vào giá trị của biến *lang*.
+Nhập thử dữ liệu hợp lệ cho hai trường name và message, sau đó nhấn nút Sign Guestbook, ta thấy giao diện sẽ xuất hiện một nhãn dán chứa nội dung dữ liệu của name và message, có thể thấy dữ liệu được lưu vào trong CSDL của trang web → có thể tồn tại XSS stored.
 
-Tiếp theo, nó sẽ chèn giá trị lang vào trong thẻ <option> trong DOM mà không bất kỳ bộ lọc, hay kiểm tra nào thông qua: 
+<img width="1533" height="661" alt="image" src="https://github.com/user-attachments/assets/98037daa-8b76-4366-aa2f-9e729094f601" />
+
+Xem source PHP nhận thấy rằng, dữ liệu input nhập vào không được kiểm tra và được lưu thẳng vào database mà không lọc, trường message được xử lý bằng hàm *stripslashes($message)*, tuy nhiên nó chỉ loại bỏ ký tự \ và không hề xử lý hay vô hiệu hóa các thẻ HTML hoặc mã JavaScript.
+
+<img width="1539" height="579" alt="image" src="https://github.com/user-attachments/assets/6b04d713-1896-4593-978c-bc3ba426d199" />
+
+Thực hiện nhập dữ liệu trong trường message với đoạn mã Javascript như sau, sau đó ấn Sign Guestbook:
 
 ```bash
-document.write("<option value='" + lang + "'>" + decodeURI(lang) + "</option>");
+: <script>alert(“ngoctai”)</script>
 ```
 
-Lúc này, document.write() sẽ ghi trực tiếp vào HTML, và trình duyệt sẽ render và  thực thi bất kỳ đoạn mã JS nào được chèn vào.
+Nhận thấy giao diện một message box cảnh báo 
 
-Trên URL, ta viết đoạn mã JS lấy cookie hiện tại sau phần “default=”:
+<img width="1535" height="661" alt="image" src="https://github.com/user-attachments/assets/605f0ee3-dbce-4cc7-9172-e3a3b6d9a64b" />
 
-<img width="1536" height="686" alt="image" src="https://github.com/user-attachments/assets/a49669e1-d02f-42cd-9bf0-7fc26a1516bb" />
-<img width="1534" height="624" alt="image" src="https://github.com/user-attachments/assets/8b1ea9ba-f4f2-4855-aec1-77cc70492c4f" />
+→ Lỗ hổng XSS stored.
 
-&rarr; Kết quả có thể thấy đoạn mã đã được chèn vào trực tiếp trong trang trong phần value:
+Thử chỉnh sửa độ dài ký tự tối đa của trường message lên thành 250 ký tự, sau đó viết mã Javascript sử dụng window.location để gửi cookie hiện tại về cho máy chủ HTTP local trên port 8080:
 
-<img width="1540" height="612" alt="image" src="https://github.com/user-attachments/assets/e5d72ed1-a0c3-407b-87e6-ec186bc3d61d" />
+<img width="1541" height="719" alt="image" src="https://github.com/user-attachments/assets/9579e7fd-3e0d-49cb-a1b2-0c10360ccf14" />
+
+Kết quả sau khi ấn nút Sign Guestbook:
+
+<img width="1534" height="667" alt="image" src="https://github.com/user-attachments/assets/b46524c4-ae1e-4b68-b4c2-737bc0c582ee" />
+
+<img width="1530" height="719" alt="image" src="https://github.com/user-attachments/assets/344bcdb6-2582-4d5d-9553-b2eb099bbb5f" />
 
 ---
 
-## 2. XSS DOM (MEDIUM)
+## 2. XSS STORED (MEDIUM)
 
-Kiểm tra source PHP, ta thấy nó ngăn người dùng chèn mã <script> vào tham số default trong URL, nếu dữ liệu có <script> thì sẽ redirect về trang với default=English:
+Kiểm tra source PHP:
 
-<img width="1538" height="686" alt="image" src="https://github.com/user-attachments/assets/4c0f1b9c-eac9-48c3-90d8-b2d67be3c173" />
+<img width="1536" height="724" alt="image" src="https://github.com/user-attachments/assets/abbc1b59-0692-447d-89bc-059d45ed80e5" />
 
-&rarr; Do đó ta có thể thực chèn mã thẻ khác với thẻ <script> như: <img …>, <svg …>, ...
+&rarr; Có thể thấy trường message được xử lý bằng hàm *strip_tags* xóa tất cả các thẻ HTML như <script>, <b>, <img>,... và hàm *addslashes* thêm ký tự escape (\) trước ', ", \, NULL cùng với *htmlspecialchars* sẽ chuyển các ký tự HTML thành dạng an toàn: < → &lt, > → &gt,...
 
-<img width="1534" height="632" alt="image" src="https://github.com/user-attachments/assets/34f8483a-9ada-43cc-880b-9e1407fc2987" />
+<img width="1537" height="669" alt="image" src="https://github.com/user-attachments/assets/a68f09bc-eda7-48d2-99ef-70b2fd0033c4" />
 
-<img width="1540" height="627" alt="image" src="https://github.com/user-attachments/assets/7f7b64b1-b28d-4f4c-9363-f6cdd5d0c971" />
+Tuy nhiên, trường name chỉ được xử lý bằng *str_replace('<script>')*, dùng để loại bỏ đúng cụm <script> ra khỏi dữ liệu input:
 
-Đoạn mã được chèn trực tiếp vào value trong phần <option> của trang.
+<img width="1534" height="706" alt="image" src="https://github.com/user-attachments/assets/24f8fed7-832e-4eac-ac4f-af8ce290b8f1" />
 
-<img width="1534" height="336" alt="image" src="https://github.com/user-attachments/assets/e37ec2d4-da88-436d-8dd8-521e0dd4ff36" />
+Do đó ta thực hiện thử bằng các thẻ tag khác như <svg … > hoặc các biến dạng khác của <script> như <scr<script>ipt> để bypass.
 
-Để hợp thức hóa cú pháp HTML hơn, ta có thể thêm </select> trước đoạn mã JS, để thẻ <svg> thoát khỏi thẻ <select>, giúp chèn thẻ <svg> độc lập ngoài DOM form control:
+<img width="1536" height="698" alt="image" src="https://github.com/user-attachments/assets/14ba131d-34e0-4988-9d57-06d3173471c4" />
 
-<img width="1535" height="338" alt="image" src="https://github.com/user-attachments/assets/b51c93cd-7490-4926-b0b9-99f03622b0c9" />
+<img width="1530" height="708" alt="image" src="https://github.com/user-attachments/assets/e8f163aa-1dc1-4521-a5d9-cdb0ee1fa9fe" />
 
-<img width="1535" height="361" alt="image" src="https://github.com/user-attachments/assets/5f278c79-f8ad-4d97-af1f-108ea45b8038" />
+<img width="1528" height="695" alt="image" src="https://github.com/user-attachments/assets/33cc45b7-402c-42c0-a48a-8ab86b5baba4" />
 
-Kết quả có thể thấy thẻ <svg> đã độc lập ra khỏi thẻ <select>
+<img width="1532" height="702" alt="image" src="https://github.com/user-attachments/assets/13658d57-9a3b-4afd-b650-a3ac594bad0b" />
 
-<img width="1539" height="337" alt="image" src="https://github.com/user-attachments/assets/a21479ac-7784-4a2b-b49e-ab7b00e6d989" />
+&rarr; Kết quả bypass thành công bằng hai cách trên.
 
 ---
 
-## 3. XSS DOM (HIGH)
+## 3. XSS STORED (HIGH)
 
-Kiểm tra source PHP, ta thấy nó sử dụng whitelist để kiểm tra giá trị, và chỉ chấp nhận các giá trị cụ thể: English, French, German, Spanish. Nếu không đúng giá trị nào trong whitelist, redirect về default=English:
+Kiểm tra source PHP:
 
-<img width="1533" height="747" alt="image" src="https://github.com/user-attachments/assets/52553ee6-6197-4863-bd4b-cfa7cc1bc264" />
+<img width="1541" height="709" alt="image" src="https://github.com/user-attachments/assets/e2083337-ba41-4189-ba1f-7daf60d547df" />
 
-Do đó cần tìm lỗi phía client-side (JavaScript).
-Sử dụng kỹ thuật thêm dấu # vào sau giá trị hợp lệ và trước mã JS ta cần chèn:
+&rarr; Nhận thấy rằng dữ liệu trường name được xử lý bằng cách sử dụng preg_replace('/<(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t/i'), nó sẽ thực hiện tìm và xóa tất cả biến thể của từ <script>, tức tất cả nội dung khớp với pattern này sẽ bị xóa khỏi biến name, ví dụ như các dạng: <script>, <sCrIpT>, <scri<script>pt>, <s...c...r...i...p…t>,...
+
+Do chỉ xóa mọi dạng <script> viết biến thể nên ta có thể sử dụng các thẻ tag khác như: <img …> hay <svg …>,... để khai thác.
+
+<img width="1535" height="653" alt="image" src="https://github.com/user-attachments/assets/29a6f3f5-1912-43d5-a4fc-59081c7057de" />
+
+<img width="1547" height="681" alt="image" src="https://github.com/user-attachments/assets/12c936c8-cd55-4feb-83a6-935bfd8e4ac8" />
+
+Thực hiện tạo payload chuyển hướng người dùng server HTTP máy mình, hi ảnh không tải được (src="x"), trình duyệt thực hiện onerror:
+
+<img width="1538" height="457" alt="image" src="https://github.com/user-attachments/assets/bad5b34d-0eb4-4550-ab5c-c6705148627b" />
+
+<img width="1533" height="669" alt="image" src="https://github.com/user-attachments/assets/8d7e32e8-1958-4931-8f19-a320a3041534" />
+
+Thử tạo dữ liệu của trường name là một dữ liệu liên kết bằng cách tạo một thẻ HTML <a> và có chứa mã JavaScript trong thuộc tính sự kiện onclick: 
 
 ```bash
-?default=French#<img src=x onerror=alert(1)>
+<a href=”#” onclick=”alert(1)”>Clickme</a>
 ```
 
-PHP sẽ chỉ thấy phần **?default=French**, vì nội dung sau dấu # là fragment (hash) không được gửi lên server.
+<img width="1538" height="645" alt="image" src="https://github.com/user-attachments/assets/057f9c6d-6b5b-4233-b28c-d6c1a162b00c" />
 
-Tức là server vẫn sẽ nhận: 
+<img width="1537" height="612" alt="image" src="https://github.com/user-attachments/assets/a85b94a3-5176-4df4-bcb5-ce6aa71f9fa9" />
 
-```bash
-GET /vulnerabilities/xss_d/?default=French HTTP/1.1 
-```
+Khi click vào *click me* lỗ hổng XSS stored sẽ được kích hoạt.
 
-Tuy nhiên phía client JS, vẫn sẽ đọc toàn bộ *document.location.href*, lấy chuỗi sau default và gán toàn bộ cho biến lang và chèn thẳng vào DOM.
-
-```bash
-var lang = "French#<img src=x onerror=alert(1)>"
-```
-
-<img width="1437" height="764" alt="image" src="https://github.com/user-attachments/assets/0ac9888c-21e0-4af3-aaf1-62fcce2abd0f" />
-
-&rarr; Kết quả thu được:
-<img width="1448" height="600" alt="image" src="https://github.com/user-attachments/assets/8540db54-15ba-45db-af7f-e4ddbd78c794" />
+<img width="1531" height="650" alt="image" src="https://github.com/user-attachments/assets/cf85eb98-571f-4679-b25d-15c2783aaa97" />
 
 ---
 
 ## ✅ Kết luận:
 
-Thành công khai thác lỗ hổng XSS DOM trên lab DVWA.
+Thành công khai thác lỗ hổng XSS Stored trên lab DVWA.
 
 ---
