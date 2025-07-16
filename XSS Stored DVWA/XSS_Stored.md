@@ -23,7 +23,7 @@ Xem source PHP nhận thấy rằng, dữ liệu input nhập vào không đư�
 Thực hiện nhập dữ liệu trong trường message với đoạn mã Javascript như sau, sau đó ấn Sign Guestbook:
 
 ```bash
-: <script>alert(“ngoctai”)</script>
+<script>alert(“ngoctai”)</script>
 ```
 
 Nhận thấy giao diện một message box cảnh báo 
