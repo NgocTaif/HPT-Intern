@@ -50,7 +50,7 @@ Kiểm tra source PHP:
 
 <img width="1536" height="724" alt="image" src="https://github.com/user-attachments/assets/abbc1b59-0692-447d-89bc-059d45ed80e5" />
 
-&rarr; Có thể thấy trường message được xử lý bằng hàm *strip_tags* xóa tất cả các thẻ HTML như <script>, <b>, <img>,... và hàm *addslashes* thêm ký tự escape (\) trước ', ", \, NULL cùng với *htmlspecialchars* sẽ chuyển các ký tự HTML thành dạng an toàn: < → &lt, > → &gt,...
+&rarr; Có thể thấy trường message được xử lý bằng hàm *strip_tags* xóa tất cả các thẻ HTML như <script>, <img>,... và hàm *addslashes* thêm ký tự escape (\) trước ', ", \, NULL cùng với *htmlspecialchars* sẽ chuyển các ký tự HTML thành dạng an toàn: < → &lt, > → &gt,...
 
 <img width="1537" height="669" alt="image" src="https://github.com/user-attachments/assets/a68f09bc-eda7-48d2-99ef-70b2fd0033c4" />
 
