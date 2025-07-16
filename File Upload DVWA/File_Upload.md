@@ -1,4 +1,4 @@
-<img width="1622" height="573" alt="image" src="https://github.com/user-attachments/assets/debb7c38-6851-4395-a456-629751b6ba9f" /># BÁO CÁO QUÁ TRÌNH KHAI THÁC FILE UPLOAD (LOW, MEDIUM, HIGH)
+# BÁO CÁO QUÁ TRÌNH KHAI THÁC FILE UPLOAD (LOW, MEDIUM, HIGH)
 
 ---
 
