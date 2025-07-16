@@ -74,7 +74,7 @@ Sử dụng các thẻ khác thẻ <script> tương tự như trong báo XSS sto
 
 ## ✅ Kết luận:
 
-Thành công khai thác lỗ hổng XSS Stored trên lab DVWA.
+Thành công khai thác lỗ hổng XSS Reflected trên lab DVWA.
 
 ---
 
