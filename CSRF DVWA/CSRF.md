@@ -14,7 +14,7 @@ Kiểm tra source PHP:
 
 &rarr; Ta có thể thấy, nó không hề kiểm tra xem form gửi có chứa mã csrf_token nào không và Dùng $_GET thay vì $_POST khiến yêu cầu dễ bị giả mạo từ một link độc hại, nó cũng không kiểm tra Referer, Origin, hay xác minh bất cứ gì từ phía client. Do đó mà nếu nếu người dùng đang đăng nhập (có cookie), và kẻ tấn công có thể tạo một link đổi mật khẩu trên trình duyệt để user thực hiện click, lệnh đổi mật khẩu sẽ chạy thành công. Đó là lý do lỗ hổng này hay thường dùng cùng với lỗ hổng XSS.
 
-Do đó mà giả sử nếu người dùng thực hiện truy cập vào đường link: 
+Do đó mà giả sử nếu người dùng thực hiện truy cập vào đường link do attacker gửi/chèn/cài/phising: 
 
 ```bash
 /dvwa/vulnerabilities/csrf/?password_new=123&password_conf=123&Change=Change 
