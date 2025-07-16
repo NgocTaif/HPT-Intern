@@ -153,7 +153,7 @@ Nhập payload:
 
 ## ✅ Kết luận:
 
-Thành công khai thác lỗ hổng XSS Stored trên lab DVWA.
+Thành công khai thác lỗ hổng Command Injection trên lab DVWA.
 
 ---
 
