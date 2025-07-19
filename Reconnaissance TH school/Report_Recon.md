@@ -15,7 +15,6 @@ Một số workflow quan trọng ta sẽ thực hiện trong phạm vi trang web
 - Thu thập subdomain
 - Quét cổng, dịch vụ
 - Technology Fingerprinting
-- Thu thập thông tin từ HTTP
 - Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn
 
 ## 1. Thu thập, xác định tên miền, IP
@@ -88,7 +87,7 @@ amass enum -passive/-brute -d thschool.edu.vn
 
 <img width="1913" height="868" alt="image" src="https://github.com/user-attachments/assets/609f1b02-53e8-4ed8-8354-53da7cdc4474" />
 
-## 2. Quét cổng, dịch vụ
+## 3. Quét cổng, dịch vụ
 
 Sử dụng ***nmap*** (một công cụ port scanner thông dụng và phổ biến) để thực hiện:
 
@@ -128,7 +127,7 @@ Sử dụng một công cụ khác là ***naabu*** (một fast port scanner do n
 
 &rarr; Kết quả tương tự.
 
-## 3. Techlonogy Fingerprinting
+## 4. Techlonogy Fingerprinting
 
 Đây là bước còn gọi là Web Technology Detection là quá trình xác định các công nghệ được sử dụng trên một website.
 
@@ -177,6 +176,69 @@ whatweb https://vinh.thschool.edu.vn
 ```
 
 <img width="1672" height="199" alt="image" src="https://github.com/user-attachments/assets/d1459793-9f91-4f4a-8d68-f0559948d501" />
+
+Sử dụng extension ***Wappalyzier*** để kiểm tra trên website: *https://thschool.edu.vn*
+
+<img width="1885" height="940" alt="image" src="https://github.com/user-attachments/assets/dc8ceb74-48ca-492f-923b-1430f4def94f" />
+
+Một số kết quả của các subdomains của thschool.edu.vn:
+
+<img width="1919" height="957" alt="image" src="https://github.com/user-attachments/assets/8d5e8917-e053-4931-882f-267b7d2e660f" />
+
+<img width="1918" height="946" alt="image" src="https://github.com/user-attachments/assets/addd1e80-8bdc-4d28-99cd-7c846a52dcfa" />
+
+<img width="1876" height="940" alt="image" src="https://github.com/user-attachments/assets/14d4bea1-2014-49a0-9b4b-53b81e8d7c14" />
+
+<img width="1919" height="952" alt="image" src="https://github.com/user-attachments/assets/10969d43-3bac-4cf2-8186-c7ec4dcb1a65" />
+
+## 5. Directory, File Enumeration (Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn)
+
+Đây là bước liệt kê các đường dẫn, thư mục và tệp tin ẩn hoặc không được hiển thị công khai trên website/server.
+
+Sử dụng wordlist chung cho các công cụ là: */usr/share/wordlists/dirb/common.txt* hoặc */usr/share/wordlists/dirb/big.txt*
+
+Thực hiện quét bằng công cụ ***Gobuster*** (một công cụ quét thư mục và tệp tin ẩn trên web server, hoạt động bằng cách gửi hàng loạt HTTP request đến server web, dựa trên wordlist):
+
+```bash
+gobuster dir -u https://thschool.edu.vn/ -w /usr/share/wordlists/dirb/common.txt -t 50 
+```
+
+Kết quả thực hiện:
+
+<img width="1690" height="733" alt="Screenshot 2025-07-19 225301" src="https://github.com/user-attachments/assets/70bbbcfe-4660-409e-8b37-ee02713e02b1" />
+
+<img width="1694" height="801" alt="image" src="https://github.com/user-attachments/assets/7bdbbaea-12a0-4ccc-a60e-23e389705729" />
+
+&rarrr; có thể thấy một số File nhạy cảm như: *.htaccess, .hta, .htpasswd* bị chặn truy cập (403), tuy nhiên có thể thấy một số đường dẫn thư mục tiềm năng như: /admin, /index.php, /robots.txt, ...
+
+Sử dụng công cụ khác là ***ffuf*** (một công cụ fuzzing phổ biến, có thể dùng Directory/file brute-force để quét):
+
+```bash
+ffuf -u https://thschool.edu.vn/FUZZ -w /usr/share/wordlists/dirb/big.txt -t 100
+```
+
+Kết quả thực hiện:
+
+<img width="1691" height="743" alt="image" src="https://github.com/user-attachments/assets/b3f3186d-6e0a-4b7a-b584-8a95fd58e74d" />
+
+<img width="1676" height="751" alt="image" src="https://github.com/user-attachments/assets/a9326bfa-0fb0-4e05-983a-2bc8969343b3" />
+
+<img width="1675" height="680" alt="image" src="https://github.com/user-attachments/assets/efcb233a-4dff-4540-a55c-88de4b271afe" />
+
+Một công cụ khác để liệt kê đường dẫn, thư mục, file ẩn là ***dirserch*** (tương đói khó dùng):
+
+```bash
+python3 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -e php,html,js -u https://thschool.edu.vn /usr/share/wordlists/dirb/common.txt
+```
+
+<img width="1687" height="737" alt="image" src="https://github.com/user-attachments/assets/deebee96-a7cf-4a69-b71e-8ba2566ae1fc" />
+
+<img width="1680" height="795" alt="image" src="https://github.com/user-attachments/assets/b6f5a5c3-d94e-4866-b1c1-dfd9843e3097" />
+
+<img width="1695" height="805" alt="image" src="https://github.com/user-attachments/assets/24407993-e399-49ae-8284-138f1caa95ea" />
+
+&rarr; Kết quá tương đối giống với các công cụ đã quét ở trên.
+
 
 
 ---
