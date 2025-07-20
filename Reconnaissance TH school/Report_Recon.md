@@ -1,4 +1,3 @@
-
 # BÁO CÁO QUÁ TRÌNH THỰC HIỆN RECONNAISSANCE TRANG WEB TH SCHOOL
 
 ---
@@ -16,6 +15,7 @@ Một số workflow quan trọng ta sẽ thực hiện trong phạm vi trang web
 - Quét cổng, dịch vụ
 - Technology Fingerprinting
 - Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn
+- Parameter Discovery
 
 ## 1. Thu thập, xác định tên miền, IP
 
@@ -239,6 +239,90 @@ python3 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -e php,html,js -u 
 
 &rarr; Kết quá tương đối giống với các công cụ đã quét ở trên.
 
+## 6. Parameter Discovery
+
+Đây là bước tìm kiếm các tham số đầu vào (parameters) mà ứng dụng web chấp nhận, từ đó kiểm tra xem chúng có dễ bị tấn công như SQL Injection, XSS, SSRF, LFI... hay không.
+
+Thực hiện sử dụng công cụ ***Arjun*** (một công cụ mã nguồn mở bằng ngôn ngữ python, dùng để tự động tìm ra các tham số (parameter) ẩn mà các ứng dụng web có thể xử lý, hay là tìm tham số HTTP GET/POST tiềm ẩn).
+
+- Quét URL chính: *https://thschool.edu.vn*
+
+```bash
+arjun -u https://thschool.edu.vn
+```
+
+<img width="1349" height="239" alt="image" src="https://github.com/user-attachments/assets/007b10a2-6cf0-4081-9fed-81879f63167a" />
+
+&rarr; Đã phát hiện 13 tham số có thể sử dụng trong tấn công khai thác lỗ hổng, tuy nhiên bị chặn sau tiếp tục quét.
+
+- Quét một số các đường dẫn, subdomains khác đã thu thập được từ trên:
+  
+  - *https://thschool.edu.vn/admin/login.php*
+    
+    ```bash
+    arjun -u https://thschool.edu.vn/admin/login.php
+    ```
+    
+    <img width="1006" height="273" alt="image" src="https://github.com/user-attachments/assets/97aedcb5-4b7c-4c6e-9add-da74fe7bfcd2" />
+
+  - *https://thschool.edu.vn/phpMyAdmin*
+ 
+    ```bash
+    arjun -u https://thschool.edu.vn/phpMyAdmin
+    ```
+    
+    <img width="1372" height="253" alt="image" src="https://github.com/user-attachments/assets/203d616a-260d-422b-a08b-2f71ec12a1ef" />
+    
+  - *https://admin.photos.thschool.edu.vn/login*
+ 
+    ```bash
+    arjun -u https://admin.photos.thschool.edu.vn/login
+    ```
+ 
+    <img width="1314" height="240" alt="image" src="https://github.com/user-attachments/assets/645cc183-9076-4b19-9c9e-14c00720b1c3" />
+
+    &rarr; Phát hiện một parameter "based on: body length", tức nội dung trả về dài ngắn khác nhau → tham số có ảnh hưởng.
+
+  - *https://photos.thschool.edu.vn*
+ 
+    ```bash
+    arjun -u https://admin.photos.thschool.edu.vn/login
+    ```
+
+    <img width="1680" height="269" alt="image" src="https://github.com/user-attachments/assets/a48e3aa4-1279-401c-a105-6dd72f256511" />
+
+  - *https://hoalac.thschool.edu.vn*
+ 
+    ```bash
+    arjun -u https://hoalac.thschool.edu.vn
+    ```
+
+    <img width="1663" height="733" alt="image" src="https://github.com/user-attachments/assets/f019f6c6-f5e7-415b-89ab-80fe3bcf43d9" />
+
+    <img width="1672" height="629" alt="image" src="https://github.com/user-attachments/assets/16c8cea0-7e15-4584-8926-30a01dcb3c58" />
+
+    &rarr; Có thể thấy một số các parameter "based on: http code", tức mã phản hồi (status code) HTTP khác nhau → server xử lý khác nhau dựa vào tham số. Ngoài ra "based on: param name reflection" là tham số được phản chiếu lại trong nội dung HTML (dễ dẫn đến XSS).
+
+  - *https://chuaboc.thschool.edu.vn*
+ 
+    ```bash
+    arjun -u https://chuaboc.thschool.edu.vn
+    ```
+
+    <img width="1684" height="701" alt="image" src="https://github.com/user-attachments/assets/f7042a42-6d8f-4dd6-8f76-a1863d25788b" />
+
+    <img width="1675" height="594" alt="image" src="https://github.com/user-attachments/assets/ae69cb18-59be-40de-94f6-5e402b22a614" />
+
+    &rarr; Các parrameter phát hiện "based on" tương đồng với url: https://hoalac.thschool.edu.vn
+
+
+  - *https://vinh.thschool.edu.vn*
+ 
+    ```bash
+    arjun -u https://vinh.thschool.edu.vn
+    ```
+
+    <img width="1680" height="365" alt="image" src="https://github.com/user-attachments/assets/8665729e-caf5-4de7-97ff-2d715ea38a15" />
 
 
 ---
