@@ -4,7 +4,7 @@
 
 Trinh sát (hay còn gọi là Trinh sát) là một quá trình thiết yếu trong pentesting, đặc biệt là Pentesting hộp đen, nơi ta không có thông tin cụ thể về mục tiêu của mình. Trước khi bắt đầu khai thác mục tiêu, điều quan trọng là phải thu thập càng nhiều thông tin càng tốt về mục tiêu của bạn để xác định khu vực bề mặt, phạm vi tấn công. "Bề mặt tấn công" là một thuật ngữ ưa thích được sử dụng để xác định "Điểm tấn công khả thi" cho mục tiêu của ta.
 
-Mục tiêu hiện này là trang web TH School (link: *https://thschool.edu.vn*), giao diện trang chủ chính thức của trang web:
+Mục tiêu (target) là trang web TH School (link: *https://thschool.edu.vn*), giao diện trang chủ chính thức của trang web:
 
 <img width="1919" height="804" alt="image" src="https://github.com/user-attachments/assets/1ec89d8b-8b8c-4cd5-b87e-dc3454710305" />
 
