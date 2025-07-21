@@ -329,6 +329,6 @@ arjun -u https://thschool.edu.vn
 
 ## ✅ Kết luận:
 
-Thành công khai thác lỗ hổng Blind SQLi trên lab DVWA.
+Thu được một số kết quả trong quá trình Reconnaissance.
 
 ---
