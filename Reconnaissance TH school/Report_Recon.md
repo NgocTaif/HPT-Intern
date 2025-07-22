@@ -14,8 +14,12 @@ Một số workflow quan trọng ta sẽ thực hiện trong phạm vi trang web
 - Thu thập subdomain
 - Quét cổng, dịch vụ
 - Technology Fingerprinting
+- Crawling (URL Enumeration)
 - Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn
 - Parameter Discovery
+- Google Dorking
+
+---
 
 ## 1. Thu thập, xác định tên miền, IP
 
@@ -63,6 +67,8 @@ Sử dụng trang ***DomainTools*** (*https://whois.domaintools.com*) và *https
 
 <img width="1917" height="802" alt="Screenshot 2025-07-19 011559" src="https://github.com/user-attachments/assets/5391ff7e-cb34-494b-babf-f3db4c814924" />
 
+---
+
 ## 2. Thu thập subdomain
 
 Thực hiện tìm, liệt kê các subdomain (tên miền phụ) là phần mở rộng của một tên miền chính: *thschool.edu.vn*
@@ -86,6 +92,8 @@ amass enum -passive/-brute -d thschool.edu.vn
 ```
 
 <img width="1913" height="868" alt="image" src="https://github.com/user-attachments/assets/609f1b02-53e8-4ed8-8354-53da7cdc4474" />
+
+---
 
 ## 3. Quét cổng, dịch vụ
 
@@ -126,6 +134,8 @@ Sử dụng một công cụ khác là ***naabu*** (một fast port scanner do n
 <img width="1286" height="390" alt="image" src="https://github.com/user-attachments/assets/46fb1173-7e36-4e85-9b48-304ed871526b" />
 
 &rarr; Kết quả tương tự.
+
+---
 
 ## 4. Techlonogy Fingerprinting
 
@@ -190,6 +200,8 @@ Một số kết quả của các subdomains của thschool.edu.vn:
 <img width="1876" height="940" alt="image" src="https://github.com/user-attachments/assets/14d4bea1-2014-49a0-9b4b-53b81e8d7c14" />
 
 <img width="1919" height="952" alt="image" src="https://github.com/user-attachments/assets/10969d43-3bac-4cf2-8186-c7ec4dcb1a65" />
+
+---
 
 ## 5. Crawling  (URL Enumeration)
 
@@ -268,6 +280,8 @@ Ta sử dụng công cụ *katana* (một công cụ web crawler) để quét:
 
   <img width="1634" height="644" alt="image" src="https://github.com/user-attachments/assets/058fa5d0-34c6-43e3-89e9-53af65aa14c6" />
 
+---
+
 ## 6. Directory, File Enumeration (Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn)
 
 Đây là bước liệt kê các đường dẫn, thư mục và tệp tin ẩn hoặc không được hiển thị công khai trên website/server.
@@ -315,6 +329,8 @@ python3 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -e php,html,js -u 
 <img width="1695" height="805" alt="image" src="https://github.com/user-attachments/assets/24407993-e399-49ae-8284-138f1caa95ea" />
 
 &rarr; Kết quá tương đối giống với các công cụ đã quét ở trên.
+
+---
 
 ## 7. Parameter Discovery
 
@@ -392,7 +408,6 @@ arjun -u https://thschool.edu.vn
 
     &rarr; Các parrameter phát hiện "based on" tương đồng với url: https://hoalac.thschool.edu.vn
 
-
   - *https://vinh.thschool.edu.vn*
  
     ```bash
@@ -401,6 +416,19 @@ arjun -u https://thschool.edu.vn
 
     <img width="1680" height="365" alt="image" src="https://github.com/user-attachments/assets/8665729e-caf5-4de7-97ff-2d715ea38a15" />
 
+---
+
+## 8. Google Dorking
+
+Đây là bước tìm kiếm các thông tin nhạy cảm bị rò rỉ công khai trên internet hoặc là mã nguồn hoặc thông tin bị rò rỉ liên quan đến domain trên GitHub.
+
+Một trang hữu ích và phổ biến là *https://www.exploit-db.com/google-hacking-database*
+
+<img width="1911" height="885" alt="image" src="https://github.com/user-attachments/assets/f6d89799-79ae-4b13-a864-1b721c0d94f1" />
+
+Một trang web khác tìm kiếm tiện hơn là: *https://nitinyadav00.github.io/Bug-Bounty-Search-Engine/*
+
+<img width="1898" height="882" alt="image" src="https://github.com/user-attachments/assets/bc001d03-844a-49a3-b0b2-5ae6d972c786" />
 
 ---
 
