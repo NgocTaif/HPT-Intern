@@ -191,7 +191,84 @@ Một số kết quả của các subdomains của thschool.edu.vn:
 
 <img width="1919" height="952" alt="image" src="https://github.com/user-attachments/assets/10969d43-3bac-4cf2-8186-c7ec4dcb1a65" />
 
-## 5. Directory, File Enumeration (Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn)
+## 5. Crawling  (URL Enumeration)
+
+Đây là bước tìm tất cả các liên kết bên trong site, giúp phát hiện như: Endpoint ẩn, file .js, .css, .xml, html ... , trang con tiềm năng, API. Quá trình này có thể thực hiện để đầu vào cho fuzzing, tạo wordlist hoặc một loại test/analys khác.
+
+Ta sử dụng công cụ *katana* (một công cụ web crawler) để quét:
+
+- Quét trên domain chính: thschool.edu.vn
+
+  ```bash
+  katana -u https://thschool.edu.vn -d 5 -o urls_main_domain.txt
+  ```
+
+  <img width="1673" height="661" alt="image" src="https://github.com/user-attachments/assets/21a41cca-5491-4f5c-b3d6-a8b4b7df9a2a" />
+
+  Kết quả:
+
+  <img width="1664" height="661" alt="image" src="https://github.com/user-attachments/assets/67b2cc9f-fff9-48a0-b15e-c74cda743978" />
+
+- Quét trên subdomain: chuaboc.thschool.edu.vn
+
+  ```bash
+  katana -u https://chuaboc.thschool.edu.vn -d 5 -o urls_chuaboc.txt
+  ```
+
+  <img width="1643" height="575" alt="image" src="https://github.com/user-attachments/assets/df463051-6050-4fea-bbef-f2c51fd5c771" />
+
+  <img width="1668" height="660" alt="image" src="https://github.com/user-attachments/assets/10634dee-1b2c-4903-afe3-a29c9cfbce7e" />
+
+- Quét trên subdomain: hoalac.thschool.edu.vn
+
+  ```bash
+  katana -u https://hoalac.thschool.edu.vn -d 5 -o urls_hoalac.txt
+  ```
+
+  <img width="1662" height="652" alt="image" src="https://github.com/user-attachments/assets/9714ae0a-1b52-4634-8051-69f68031712c" />
+
+  <img width="1674" height="641" alt="image" src="https://github.com/user-attachments/assets/14f57c87-0859-4df0-a3f2-48b178ec5520" />
+
+
+- Quét trên subdomain: admin.photos.thschool.edu.vn
+
+  ```bash
+  katana -u https://admin.photos.thschool.edu.vn -d 5 -o urls_adminphoto.txt
+  ```
+
+  <img width="1611" height="652" alt="image" src="https://github.com/user-attachments/assets/b7616ad0-92a5-448d-a65e-e837b1529a2d" />
+
+  <img width="1512" height="647" alt="image" src="https://github.com/user-attachments/assets/33eb7309-3bda-4b25-b824-f611a29655af" />
+
+- Quét trên subdomain: photos.thschool.edu.vn
+
+  ```bash
+  katana -u https://photos.thschool.edu.vn -d 5 -o urls_photos.txt
+  ```
+
+  <img width="1632" height="657" alt="image" src="https://github.com/user-attachments/assets/d181db39-9e41-4154-abf1-537e4a30d9ad" />
+
+  <img width="1624" height="646" alt="image" src="https://github.com/user-attachments/assets/8d4b2d0a-cd6c-456b-a8ee-819032d4d9a0" />
+
+- Quét trên subdomain: library.thschool.edu.vn
+
+  ```bash
+  katana -u https://library.thschool.edu.vn -d 5 -o urls_library.txt
+  ```
+
+  <img width="1291" height="456" alt="image" src="https://github.com/user-attachments/assets/5dd48209-ac23-41f9-a063-2667f145c799" />
+
+- Quét trên subdomain: vinh.thschool.edu.vn
+
+  ```bash
+  katana -u https://vinh.thschool.edu.vn -d 5 -o urls_vinh.txt
+  ```
+
+  <img width="1594" height="647" alt="image" src="https://github.com/user-attachments/assets/5413bae1-1513-4d80-b73d-4f84a3c58ae4" />
+
+  <img width="1634" height="644" alt="image" src="https://github.com/user-attachments/assets/058fa5d0-34c6-43e3-89e9-53af65aa14c6" />
+
+## 6. Directory, File Enumeration (Thu thập, liệt kê đường dẫn, thu mục, tệp tin ẩn)
 
 Đây là bước liệt kê các đường dẫn, thư mục và tệp tin ẩn hoặc không được hiển thị công khai trên website/server.
 
@@ -239,7 +316,7 @@ python3 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -e php,html,js -u 
 
 &rarr; Kết quá tương đối giống với các công cụ đã quét ở trên.
 
-## 6. Parameter Discovery
+## 7. Parameter Discovery
 
 Đây là bước tìm kiếm các tham số đầu vào (parameters) mà ứng dụng web chấp nhận, từ đó kiểm tra xem chúng có dễ bị tấn công như SQL Injection, XSS, SSRF, LFI... hay không.
 
