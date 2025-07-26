@@ -434,6 +434,16 @@ Một trang web khác tìm kiếm tiện hơn là: *https://nitinyadav00.github.
 
 ## ✅ Kết luận:
 
-Thu được một số kết quả trong quá trình Reconnaissance.
+Kết quả thu được một số thông tin quan trọng như sau:
+
+1. Site name: thschool.edu.vn, Ip address: 101.99.3.34
+
+2. Thu được một số subdomains: hoalac.thschool.edu.vn, chuaboc.thschool.edu.vn, photos.thschool.edu.vn, admin.photos.thschool.edu.vn, vinh.thschool.edu.vn
+
+3. Các cổng đang mở trên site: 80/tcp (http, apache), 443/tcp(https, apahce), hệ điều hành có thể là Linux/Crestron 2-Series/ HP embedded.
+
+4. Một số công nghệ sử dụng trên site thschool.edu.vn đang chú ý như: Apache HTTP Server 2.x, PHP 7.4.33, JQuery 3.6.0
+
+5. Một số đường dẫn ẩn đáng chú ý: /admin, /phpMyAdmin, /info, /config,...
 
 ---
