@@ -345,7 +345,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   &rarr; Kết luận câu truy vấn gốc có 3 cột.
 
-  Câu truy vấn lúc này sẽ trở thành:
+  Khi đó câu truy vấn lúc này sẽ trở thành:
 
   ```sql
   SELECT a, b, c FROM products WHERE category='Food & Drink' ORDER BY 4 -- 
