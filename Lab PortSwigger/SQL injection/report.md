@@ -202,7 +202,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   Nhập nội dung username như bên dưới:
 
-  <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/e55f43a0-c435-44b6-aff2-e842ac1d27d2" />
+  <img width="1919" height="874" alt="image" src="https://github.com/user-attachments/assets/408d139d-8cd8-45f1-821f-ed12f58928c0" />
 
   Lúc này, câu SQL trở thành:
 
@@ -212,7 +212,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   Kết quả bypass thành công:
 
-  ![Uploading image.png…]()
+  <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/e55f43a0-c435-44b6-aff2-e842ac1d27d2" />
 
 ---
 
@@ -305,7 +305,20 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   &rarr; Kết luận câu truy vấn gốc thực hiện truy vấn hai cột.
 
-- Một phương pháp khác là sử dụng *UNION SELECT NULL*
+- Một phương pháp khác là sử dụng *UNION SELECT NULL*, bản chất là gửi các payload UNION SELECT với số lượng NULL khác nhau cho đến khi bạn không gặp lỗi, nghĩa là bạn đã khớp được số lượng cột của truy vấn gốc. Bởi vì NULL là không có kiểu dữ liệu cụ thể, nên nó tương thích với mọi loại cột.
+
+- Nên ta có thể tạo các tham số id như sau:
+
+  ```bash
+  ?id=1' UNION SELECT NULL-- -
+  ?id=1' UNION SELECT NULL,NULL-- -
+  ?id=1' UNION SELECT NULL,NULL,NULL-- -
+  ...
+  ```
+
+  Nếu số lượng NULL không khớp số lượng cột ở câu truy vấn gốc, database có thể bảo lỗi hoặc ứng dụng sẽ trả lỗi HTTP.
+  
+
 
 
 
