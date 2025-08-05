@@ -365,7 +365,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   <img width="1866" height="753" alt="image" src="https://github.com/user-attachments/assets/11ccad0e-be95-444f-864e-2c30964c318b" />
 
-  Vì lúc này câu truy vấn union sẽ đủ điều kiện hợp với ba cột:
+  Vì lúc này câu truy vấn UNION SELECT sẽ đủ điều kiện hợp ba cột của truy vấn gốc với ba cột NULL:
 
    ```sql
   SELECT a, b, c FROM products WHERE category='Food & Drink' UNION SELECT NULL, NULL, NULL -- 
