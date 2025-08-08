@@ -1,4 +1,4 @@
-<img width="1919" height="831" alt="image" src="https://github.com/user-attachments/assets/60762ce5-c65c-4967-9aba-cd81cc503e98" /># LỖ HỔNG SQL INJECTION (PORTSWIGGER)
+# LỖ HỔNG SQL INJECTION (PORTSWIGGER)
 
 ---
 
