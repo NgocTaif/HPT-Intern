@@ -117,7 +117,34 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   Fragment #access_token=... → là nơi token được trả về trực tiếp trên URL vì bạn đang dùng Implicit Flow (response_type=token ở request trước).
 
+- Tiếp đó, trình duyệt gửi request để tải trang /oauth-callback từ server của ứng dụng.
+
+  <img width="1873" height="604" alt="image" src="https://github.com/user-attachments/assets/07182004-9bbc-4bfc-9848-86e83c14ca53" />
+
+  Có thể thấy, sử dụng token vừa lấy để gọi API /me → mục đích: lấy thông tin profile người dùng (OpenID, email, tên, …) từ nhà cung cấp OAuth.
+
+  Sau khi lấy được thông tin user từ OAuth provider, script sẽ gửi POST request đến endpoint /authenticate của server ứng dụng.
+
+- Cuối cùng, email và username được lấy từ API /me của OAuth provider sau khi xác thực thành công và token chính là access token mà ứng dụng đã lấy được từ OAuth server (bước trước):
+
+  <img width="1866" height="606" alt="image" src="https://github.com/user-attachments/assets/491a16a5-edc4-4cd9-ae19-8338459af3da" />
+
+  Sau đó redirect về trang chính /, tạo session mới cho user → bằng cách Set-Cookie.
+
+- Tuy nhiên có thể thể thấy ở đây, web lại để client (trình duyệt) gửi thông tin user về qua endpoint /authenticate và server tin ngay giá trị thông tin user như email trong body request này là thật, không verify token với OAuth provider. Do đó nếu ta dùng Burp Repeater gửi lại request POST /authenticate, sau đó sửa giá trị "email" thành carlos@carlos-montoya.net và gửi lại request, lúc này server set cookie session cho Carlos. Sau đó, thực hiện chọn "Request in browser" > "In original session" để lấy URL này:
+
+  <img width="1432" height="1001" alt="image" src="https://github.com/user-attachments/assets/6cf0462c-ba04-4d09-a742-45e39f80f630" />
+
+  <img width="1919" height="885" alt="image" src="https://github.com/user-attachments/assets/1ca02820-3302-421e-9a0a-f6dda72e187f" />
+
+  &rarr; Đăng nhập thành công tài khoản *carlos*
+
   
+
+  
+
+
+
 
 
 
