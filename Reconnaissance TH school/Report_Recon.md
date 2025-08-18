@@ -1,4 +1,4 @@
-<img width="1340" height="934" alt="image" src="https://github.com/user-attachments/assets/64ff911d-8d05-4aed-b131-969137912379" /># BÁO CÁO QUÁ TRÌNH THỰC HIỆN RECONNAISSANCE TRANG WEB TH SCHOOL
+# BÁO CÁO QUÁ TRÌNH THỰC HIỆN RECONNAISSANCE TRANG WEB TH SCHOOL
 
 ---
 
