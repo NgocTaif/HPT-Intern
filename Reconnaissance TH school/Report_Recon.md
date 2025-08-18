@@ -302,6 +302,8 @@ Kết quả thực hiện:
 
 &rarrr; có thể thấy một số File nhạy cảm như: *.htaccess, .hta, .htpasswd* bị chặn truy cập (403), tuy nhiên có thể thấy một số đường dẫn thư mục tiềm năng như: /admin, /index.php, /robots.txt, ...
 
+<img width="374" height="653" alt="image" src="https://github.com/user-attachments/assets/5e9722e6-9693-4b1a-94ae-bb5ae95f4e59" />
+
 Sử dụng công cụ khác là ***ffuf*** (một công cụ fuzzing phổ biến, có thể dùng Directory/file brute-force để quét):
 
 ```bash
@@ -329,6 +331,38 @@ python3 /usr/lib/python3/dist-packages/dirsearch/dirsearch.py -e php,html,js -u 
 <img width="1695" height="805" alt="image" src="https://github.com/user-attachments/assets/24407993-e399-49ae-8284-138f1caa95ea" />
 
 &rarr; Kết quá tương đối giống với các công cụ đã quét ở trên.
+
+Dùng dirsearch enum tiếp trong các thư mục /admin có priority cao
+
+<img width="1025" height="270" alt="image" src="https://github.com/user-attachments/assets/a75ad6fb-b25c-45ed-a698-d0f5127d9966" />
+
+Enum thêm /admin/modules/ => enum đc 1 số modules của target
+
+<img width="1205" height="356" alt="image" src="https://github.com/user-attachments/assets/42ef6fda-e4da-44e3-bb47-c937279f8e2c" />
+
+URL/ Files cần lưu ý:
+
+- /info.php
+
+<img width="1515" height="880" alt="image" src="https://github.com/user-attachments/assets/05c96d79-9529-4cce-ac29-fbf31bcd86ba" />
+
+- /rss.php
+
+<img width="1175" height="304" alt="image" src="https://github.com/user-attachments/assets/71e4577c-adc9-44e0-b1b2-347989abeb16" />
+
+Root path leak
+
+<img width="1432" height="591" alt="image" src="https://github.com/user-attachments/assets/8c082524-6945-49dd-942d-29400abda4f5" />
+
+- /admin/login.php
+
+<img width="1209" height="680" alt="image" src="https://github.com/user-attachments/assets/286694c4-805b-40b7-8f5c-747bf7f0c380" />
+
+- /index.php?module=contact&view=contact&task=save_contact
+
+Nắm được cú pháp gọi hàm, module => cần enum thêm modules hoặc fuzz param
+
+<img width="1430" height="633" alt="image" src="https://github.com/user-attachments/assets/db42779d-50f1-419a-98b0-31aeb0c00503" />
 
 ---
 
