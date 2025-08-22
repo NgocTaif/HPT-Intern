@@ -4,11 +4,15 @@
 
 Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt gặp các trang web cho phép đăng nhập bằng tài khoản mạng xã hội của mình như: facebook, google, ... Rất có thể tính năng này được xây dựng bằng cách sử dụng framework OAuth 2.0 phổ biến. OAuth 2.0 rất dễ bị để ý với những kẻ tấn công vì nó cực kỳ phổ biến và vốn dĩ dễ mắc lỗi triển khai. Dưới đây ta sẽ tìm hiểu về lỗ hổng trong OAuth authentication.
 
+---
+
 ## 1. OAuth là gì?
 
 - OAuth là một khung ủy quyền thường được sử dụng cho phép các trang web và ứng dụng web yêu cầu quyền truy cập hạn chế/nhất định vào tài khoản của người dùng trên một ứng dụng khác. Điều quan trọng là OAuth cho phép người dùng cấp quyền truy cập này mà không tiết lộ thông tin đăng nhập của họ cho ứng dụng yêu cầu.
 
 - Ví dụ, trên một website là: abc.com, thay vì tạo một tài khoản đăng nhập mới ta có thể chọn mục "Đăng nhập bằng Google", lúc này trang web sẽ phải thực hiện xin cấp quyền từ Google để có thể đăng nhập vào trang web abc.com
+
+---
 
 ## 2. Cách thức hoạt động của OAuth 2.0
 
@@ -26,50 +30,112 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
       - Resource Server – API chứa dữ liệu thật, chỉ trả dữ liệu khi có token hợp lệ.
 
-- Tập trung vào hai dạng grant phổ biển nhất là: Authorization Code Flow & Implicit Flow
-
 - Cả hai dạng grant đều theo 4 dạng cơ bản như sau:
 
 <img width="1189" height="1200" alt="image" src="https://github.com/user-attachments/assets/6f29f687-17fc-43a4-9345-787c8c8d2600" />
 
-- Ví dụ: ta vào trang web: hpt.com và chọn "Đăng nhập bằng Google"
+- Tập trung vào hai dạng grant phổ biển nhất là: Authorization Code Flow & Implicit Flow
 
-  - Đầu tiên, hpt.com gửi request đến Google OAuth:
+  - Authorization Code Flow:
  
+    Client application và dịch vụ OAuth trước tiên sử dụng chuyển hướng để trao đổi một loạt các yêu cầu HTTP dựa trên trình duyệt nhằm khởi động quy trình.
+
+    Người dùng sẽ được hỏi có đồng ý với yêu cầu quyền truy cập hay không. Nếu họ chấp nhận, client application được cấp một "mã ủy quyền". Ứng dụng khách sau đó đổi mã      này với dịch vụ OAuth để nhận được một "access token", mà họ có thể sử dụng để thực hiện các cuộc gọi API nhằm lấy dữ liệu người dùng liên quan.
+
+    <img width="837" height="607" alt="image" src="https://github.com/user-attachments/assets/e36521c1-79e0-417e-b87d-0d1cb165b525" />
+
+    **Authorization request**
+
+    Client application gửi một request đến endpoint /authorization của dịch vụ OAuth để yêu cầu quyền truy cập dữ liệu người dùng cụ thể, tùy từng loại dịch vụ OAuth, có     thể là: /auth, ...
+
     ```http
-    https://accounts.google.com/o/oauth2/v2/auth?client_id=abc123&redirect_uri=https://englishmaster.com/callback&response_type=cod&scope=email
+    GET /authorization?client_id=12345&redirect_uri=https://client-app.com/callback&response_type=code&scope=openid%20profile&state=ae13d489bd00e3c24 HTTP/1.1
+    Host: oauth-authorization-server.com
     ```
 
-  - Tiếp đó, Google hỏi: “Cho phép hpt.com xem email và hồ sơ của bạn?" và chọn Allow.
- 
-  - Google trả về:
- 
+    ***client_id:*** Tham số bắt buộc chứa định danh duy nhất của ứng dụng khách. Giá trị này được tạo ra khi ứng dụng khách đăng ký với dịch vụ OAuth.
+
+    ***redirected_uri:*** URI, cái mà trình duyệt của người dùng nên được chuyển hướng đến khi gửi mã ủy quyền cho ứng dụng khách. Điều này còn được gọi là "URI              callback" hoặc "endpoint callback".
+
+    ***response_type:*** Xác định loại phản hồi mà ứng dụng khách đang mong đợi. Đối với kiểu authorization code grant, response_type là ***code***.
+
+    **Authorization code grant**
+
+    Nếu người dùng đồng ý với yêu cầu truy cập, trình duyệt của họ sẽ chuyển hướng tới endpoint /callback mà được chỉ định cụ thể trong ***redirected_uri***. Kết quả GET     request sẽ chứa "mã ủy quyền" như một tham số truy vấn. Phụ thuộc vào cấu hình, nó cũng có thể gửi tham số ***state*** với giá trị giống với trong authorization          request.
+
     ```http
-    https://englishmaster.com/callback?code=XYZ987
+    GET /callback?code=a1b2c3d4e5f6g7h8&state=ae13d489bd00e3c24 HTTP/1.1
+    Host: client-app.com
     ```
 
-  - hpt.com gửi code này kèm client_secret lên Google để lấy:
- 
-    ```json
+    **Access token request**
+
+    Một khi client application nhận "mã ủy quyền", nó cần đổi nó để yêu cầu lấy "access token", để làm điều này nó sẽ gửi một server-to-server POST request tới endpoint      /token của dịch vụ OAuth.
+
+    ```http
+    POST /token HTTP/1.1
+    Host: oauth-authorization-server.com
+    …
+    client_id=12345&client_secret=SECRET&redirect_uri=https://client-app.com/callback&grant_type=authorization_code&code=a1b2c3d4e5f6g7h8
+    ```
+
+    ***client_secret:*** Client application phải xác thực chính nó bằng cách bao gồm khóa bí mật mà nó đã được cấp khi đăng ký với dịch vụ OAuth.
+
+    ***grant_type:*** Được sử dụng để chắc chắn endpoint mới biết kiểu cấp quyền nào mà client application muốn sử dụng.
+
+    **Access token grant**
+
+    ```http
     {
-      "access_token": "ya29.A0AfH6SMB...",
-      "expires_in": 3600,
-      "scope": "email"
+    "access_token": "z0y9x8w7v6u5",
+    "token_type": "Bearer",
+    "expires_in": 3600,
+    "scope": "openid profile",
+    …
     }
     ```
 
-  - Web gọi API Google dung access_token để lấy thông tin user.
- 
-    ```json
+    **API call**
+
+    Tạo một API call tới endpoint /userinfo của dịch vụ OAuth, access token được gửi trong Authorization: Bearer header để chứng minh rằng client application được phép       truy cập user data.
+
+    ```http
+    GET /userinfo HTTP/1.1
+    Host: oauth-resource-server.com
+    Authorization: Bearer z0y9x8w7v6u5
+    ```
+
+    **Resource grant**
+
+    Tài nguyên server sẽ xác thực giá trị của token và trả về dữ liệu người dùng dựa theo scope của access token.
+
+    ```
     {
-      "id": "123456789",
-      "email": "user@gmail.com",
-      "name": "Nguyễn Văn A",
-      "picture": "https://lh3.googleusercontent.com/a-/abc123"
+    "username":"carlos",
+    "email":"carlos@carlos-montoya.net",
+    …
     }
     ```
 
-    &rarr; Đăng nhập thành công.
+  - Implicit flow
+ 
+    Thay vì đầu tiên nhận được mã ủy quyền và sau đó đổi mã đó lấy "access token", ứng dụng khách sẽ nhận được "access token" ngay lập tức sau khi người dùng cho phép.
+
+    Câu hỏi đặt ra là vậy tại sao client application không luôn sử dụng dạng này? Đơn giản là nó kém an toàn hơn rất nhiều
+
+    Khi sử dụng dạng này, tất cả các giao tiếp diễn ra thông qua việc chuyển hướng trình duyệt. Loại này thích hợp hơn cho single-page applications và native desktop         applications (loại app chi dành riêng cho 1 nền tảng), không thể dễ dàng lưu trữ client_secret trên máy chủ.
+
+    <img width="837" height="499" alt="image" src="https://github.com/user-attachments/assets/d9b99f34-a8d8-4b17-84f2-6dd2971d7beb" />
+
+    **Authorization request**
+
+    Một điều khác so với Authorization Code Flow là response_type là ***token***.
+
+    **Access token grant**
+
+    Nếu người dùng đồng ý với quyền truy cập được yêu cầu. Dịch vụ OAuth sẽ chuyển hướng trình duyệt của người dùng đến redirect_uri được chỉ định trong yêu cầu ủy           quyền. Tuy nhiên, thay vì gửi một tham số truy vấn chứa mã ủy quyền, nó sẽ gửi token truy cập và các dữ liệu cụ thể về token khác dưới dạng một URL fragment.
+
+---
 
 ## 3. OAuth Authentication
 
@@ -85,6 +151,61 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   - Lần sau bạn chọn "Sign in with Google", shopabc chỉ cần xác minh token hợp lệ là bạn được vào.
  
+---
+ 
+## 4. Recon OAuth authentication:
+
+  - Việc thực hiện một số khảo sát cơ bản về dịch vụ OAuth đang được sử dụng có thể giúp bạn định hướng đúng khi xác định các lỗ hổng.
+ 
+  - Nếu một dịch vụ OAuth bên ngoài được sử dụng, bạn có thể xác định được nhà cung cấp cụ thể từ tên máy chủ (hostname) mà yêu cầu ủy quyền được gửi đến (trong request      /authorization).
+
+  - Hostname này giúp ta:
+
+    Biết đó là provider nào (Google, Facebook, GitHub, custom OAuth…)
+    
+    Tìm tài liệu API công khai (documentation) → biết cách hoạt động của các endpoint.
+ 
+  - Hầu hết OAuth provider chuẩn (và cả OpenID Connect) sẽ có endpoint cấu hình public mà không cần login:
+ 
+    ```http
+    https://<provider>/.well-known/oauth-authorization-server
+    https://<provider>/.well-known/openid-configuration
+    ```
+
+  - Ví dụ, một dữ liệu json được trả về:
+ 
+    ```json
+    {
+      "authorization_endpoint": "https://login.example-oauth.com/authorize",
+      "token_endpoint": "https://login.example-oauth.com/token",
+      "userinfo_endpoint": "https://login.example-oauth.com/userinfo",
+      "scopes_supported": ["openid", "email", "profile", "admin"],
+      "grant_types_supported": ["authorization_code", "implicit", "password"]
+    }
+    ```
+
+    &rarr; Scope admin và grant type password không được app đề cập → Có thể là điểm tấn công tiềm năng.
+
+---
+
+## 5. Khai thác lỗ hổng OAuth authentication
+
+### 5.1. Các lỗ hổng trong OAuth client application
+
+### Improper implementation of the implicit grant type
+
+- Loại implicit grant thường được dùng cho single-page applications, tuy nhiên cũng thường được sử dụng trong các ứng dụng web truyền thống kiểu client-server vì tính đơn giản tương đối của nó.
+
+- Trong quy trình này, "access token" được gửi từ dịch vụ OAuth tới client application qua trình duyệt của người dùng dưới dạng một phần của URL.
+
+- Client application sau đó truy cập mã thông qua JavaScript.
+
+- Vấn để là: nếu client application muốn duy trì phiên sau khi người dùng đóng trang, nó cần phải lưu trữ dữ liệu người dùng ở đâu đó.
+
+- Do đó để giải quyết, client application sẽ thường gửi dữ liệu này đến server thông qua một POST request, sau đó gán cho người dùng một session cookie. Tuy nhiên, trong kịch bản này, server không có bất kỳ cái gì để so sánh với dữ liệu đã được gửi, điều này có nghĩa là dữ liệu này được tin tưởng ngầm định.
+
+- Do đó, hành vi này có thể dẫn đến một lỗ hổng nghiêm trọng nếu client application không kiểm tra đúng cách "access token" khớp với các dữ liệu khác trong request. Trong trường hợp này, ta có thể đơn giản thay đổi các tham số gửi đến server để mạo danh bất kỳ người dùng nào.  
+
 ### Lab: Authentication bypass via OAuth implicit flow
 
 - Giao diện trang web cho phép sử dụng mạng xã hội để đăng nhập:
@@ -97,13 +218,11 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
 - Sau đó trang thực hiện redirect về trang chủ.
 
-- Thực hiện kiểm tra Burp Suite để xem quy trình OAuth trên trang web. Và khi thực hiện nhập thành công tài khoản mạng xã hội ta thấy nó bắt đầu bằng một request xác thực *GET /auth?client_id=[...]* như sau:
+- Thực hiện kiểm tra Burp Suite để xem quy trình OAuth trên trang web. Và khi thực hiện nhập thành công tài khoản mạng xã hội ta thấy nó bắt đầu bằng một request xác thực *GET /auth?client_id=[...]* gửi đến cho server của dịch vụ OAUth như sau:
 
   <img width="1431" height="516" alt="image" src="https://github.com/user-attachments/assets/157bdbc4-6c3e-4236-a179-b5c197278ad7" />
 
   Trong request trên, ta sẽ thấy:
-
-  *client_id=ab8tzl43phra0tq2jlil* là	mã định danh của ứng dụng (client app) đã được đăng ký với OAuth provider.
 
   *redirect_uri=https://0a6f00d403a19fc80793a4005200e9.web-security-academy.net/oauth-callback*:	Địa chỉ callback mà Authorization Server sẽ redirect người dùng về sau khi xác thực xong.
 
@@ -111,27 +230,27 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   *scope=openid&profile&email*:	Yêu cầu quyền truy cập thông tin OpenID, profile và email của user.
 
-- Ta sẽ thấy OAuth Server sẽ lệnh redirect trình duyệt về redirect_uri mà client đã đăng ký (ở đây là /oauth-callback).
+- Ta sẽ thấy OAuth Server thực hiện tạo request redirect trình duyệt về redirect_uri mà client đã đăng ký, đây chính là url mà chứa access token trả về cho về bên phía client application.
 
   <img width="1869" height="567" alt="image" src="https://github.com/user-attachments/assets/09a9a28a-bcae-4129-9f62-d8a61df498e6" />
 
   Fragment #access_token=... → là nơi token được trả về trực tiếp trên URL vì bạn đang dùng Implicit Flow (response_type=token ở request trước).
 
-- Tiếp đó, trình duyệt gửi request để tải trang /oauth-callback từ server của ứng dụng.
+- Tiếp đó, OAuth server gửi request để tải trang /oauth-callback tới client application.
 
   <img width="1873" height="604" alt="image" src="https://github.com/user-attachments/assets/07182004-9bbc-4bfc-9848-86e83c14ca53" />
 
   Có thể thấy, sử dụng token vừa lấy để gọi API /me → mục đích: lấy thông tin profile người dùng (OpenID, email, tên, …) từ nhà cung cấp OAuth.
 
-  Sau khi lấy được thông tin user từ OAuth provider, script sẽ gửi POST request đến endpoint /authenticate của server ứng dụng.
+  Sau khi lấy được thông tin user từ OAuth provider, script sẽ gửi POST request đến endpoint /authenticate của OAuth server để lưu thông tin người dùng cho những lần đăng nhập tiếp theo như đã đề cập ở trên.
 
-- Cuối cùng, email và username được lấy từ API /me của OAuth provider sau khi xác thực thành công và token chính là access token mà ứng dụng đã lấy được từ OAuth server (bước trước):
+- Cuối cùng, email và username được lấy từ API /me của OAuth provider và token chính là access token mà ứng dụng đã lấy được từ OAuth server (bước trước), qua đây nó sẽ sẻ dụng POST request để gửi những dữ liệu này nên server cho những lần đăng nhập tiếp theo và sau đó gán cho người dùng một session cookie (để ý phần Set-Cookie trong phản hồi):
 
   <img width="1866" height="606" alt="image" src="https://github.com/user-attachments/assets/491a16a5-edc4-4cd9-ae19-8338459af3da" />
 
-  Sau đó redirect về trang chính /, tạo session mới cho user → bằng cách Set-Cookie.
+  Sau đó redirect về trang chính /.
 
-- Tuy nhiên có thể thể thấy ở đây, web lại để client (trình duyệt) gửi thông tin user về qua endpoint /authenticate và server tin ngay giá trị thông tin user như email trong body request này là thật, không verify token với OAuth provider. Do đó nếu ta dùng Burp Repeater gửi lại request POST /authenticate, sau đó sửa giá trị "email" thành carlos@carlos-montoya.net và gửi lại request, lúc này server set cookie session cho Carlos. Sau đó, thực hiện chọn "Request in browser" > "In original session" để lấy URL này:
+- Tuy nhiên như đã trình bày ở trên, server tin ngay giá trị thông tin user như email trong body request này là thật, không có bất cứ gì để kiểm định lại. Do đó nếu ta dùng Burp Repeater gửi lại request POST /authenticate, sau đó sửa giá trị "email" thành ***carlos@carlos-montoya.net*** và gửi lại request, lúc này server set cookie session cho Carlos. Sau đó, thực hiện chọn "Request in browser" > "In original session" để lấy URL này:
 
   <img width="1432" height="1001" alt="image" src="https://github.com/user-attachments/assets/6cf0462c-ba04-4d09-a742-45e39f80f630" />
 
@@ -139,6 +258,13 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   &rarr; Đăng nhập thành công tài khoản *carlos*
 
+### Flawed CSRF protection
+
+- Nhiều thành phần trong luồng OAuth là tùy chọn, tuy nhiên một số được khuyến nghị sử dụng mạnh mẽ trừ khi có lý do quan trọng để không sử dụng chúng.
+
+- Một ví dụ là tham số state trong endpoint /authenticate (/auth,...). Giá trị này được sử dụng để truyền qua lại giữa client application và dịch vụ OAuth như một dạng mã thông báo CSRF cho client application. Do đó nếu request xác thực không có tham số state kèm theo, thì rất có thể có tiềm năng để khai thác.
+
+- 
   
 
   
