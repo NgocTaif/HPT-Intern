@@ -1,4 +1,4 @@
-# LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
+<img width="1919" height="930" alt="image" src="https://github.com/user-attachments/assets/af2dccd2-077d-4e97-a668-9a7a532aad4c" /># LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
 
 ---
 
@@ -262,13 +262,59 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
 - Nhiều thành phần trong luồng OAuth là tùy chọn, tuy nhiên một số được khuyến nghị sử dụng mạnh mẽ trừ khi có lý do quan trọng để không sử dụng chúng.
 
-- Một ví dụ là tham số state trong endpoint /authenticate (/auth,...). Giá trị này được sử dụng để truyền qua lại giữa client application và dịch vụ OAuth như một dạng mã thông báo CSRF cho client application. Do đó nếu request xác thực không có tham số state kèm theo, thì rất có thể có tiềm năng để khai thác.
+- Một ví dụ là tham số state trong endpoint /authenticate (/auth,...). Giá trị này được sử dụng để truyền qua lại giữa client application và dịch vụ OAuth như một dạng mã thông báo CSRF cho client application. Do đó nếu request xác thực không có tham số state kèm theo, thì rất có thể có tiềm năng để khai thác, nghĩa là ta có thể tự khởi động một luồng OAuth trước khi lừa trình duyệt của người dùng hoàn tất nó, tương tự như một cuộc tấn công CSRF truyền thống.
 
-- 
+- Nếu trong một trang web mà nó cho phép người dùng đăng nhập bằng cơ chế cổ điển dựa trên mật khẩu hoặc bằng cách liên kết tài khoản social từ OAuth. Trong trường hợp này, nếu ứng dụng không sử dụng tham số state, ta có thể có khả năng chiếm đoạt tài khoản của người dùng nạn nhân bằng cách liên kết nó với tài khoản mạng xã hội của chính mình. Lưu ý là nếu trang web cho phép người dùng đăng nhập chỉ qua OAuth, thì tham số state có thể không quan trọng lắm. Tuy nhiên, không sử dụng tham số state vẫn có thể cho phép ta tạo ra các cuộc tấn công CSRF trong đăng nhập, trong đó người dùng bị lừa để đăng nhập vào tài khoản của kẻ tấn công.
+
+### Lab: Forced OAuth profile linking
+
+- Giao diện trang web ta thực hiện khai thác:
+
+  <img width="1919" height="944" alt="image" src="https://github.com/user-attachments/assets/e5bb4365-3be3-4b26-a0fc-eb79a6de0d76" />
+
+- Ta thấy giao diện login bao gốm hai mục là: nhập username password thông thường và sử dụng liên kết với social media.
+
+- Sử dụng thông tin đăng nhập thông thường để login: ***wiener:peter***
   
+  <img width="1919" height="878" alt="image" src="https://github.com/user-attachments/assets/0776a110-8373-4ada-b9e5-ba9c9ed77f62" />
+
+- Khi đăng nhập thành công, giao diện sẽ hiện thông tin tài khoản và một phần là ***Attach a social profile***, ta thực hiện liên kết với tài khoản social profile là: wiener.peter:hotdog, giao diện khi thực hiện liên kết thành công:
+
+  <img width="1919" height="883" alt="image" src="https://github.com/user-attachments/assets/5e439155-a334-4d8d-98fe-06b3379a6a08" />
+
+- Thực hiện đăng xuất và đăng nhập tùy chọn "log in with social media", nhận thấy rằng trang thực hiện đăng nhập ngay lập tức qua tài khoản mạng xã hội mới liên kết của mình đó là: wiener.peter
+
+- Để ý trong HTTP proxy của Burp, ta để ý thấy trong GET request /auth?client_id[...] của "attach a social media", thấy redirect_uri cho chức năng này gửi mã xác thực đến /oauth-linking. Quan trọng là request không bao gồm tham số state để bảo vệ chống lại các cuộc tấn công CSRF.
+
+  <img width="1436" height="425" alt="image" src="https://github.com/user-attachments/assets/72f6bafe-9e64-4a25-80c5-7a56de74baec" />
+
+  <img width="1874" height="597" alt="image" src="https://github.com/user-attachments/assets/c817e99a-3e7c-49f0-9f39-c7f24402b771" />
+
+- Trong Burp, thực hiện bật proxy interception, sau đó trên trang web thực hiện chọn lại "Attach a social media", quay lại proxy interception của Burp, thực hiện forward tất cả các request cho đến khi tới request: ***GET /oauth-linking?code=[...]***:
+
+  <img width="1919" height="1009" alt="image" src="https://github.com/user-attachments/assets/42a74dd7-20c3-45a5-bc28-b1f0716450da" />
+
+  Thực hiện chuột phải và chọn Copy URL, sau đó drop request, điều này đồng nghĩa với việc ***code*** không được sử dụng nhưng nó vẫn còn giá trị.
+
+  Tắt proxy interception và thực hiện log out tài khoản.
+
+- Trong exploit server, tạo một thẻ iframe trong đó thuộc tính src trỏ tới URL oauth-linking ... mà ta vừa copy:
+
+  <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/c687cc0c-07bf-4253-b8fc-abe6fa35489d" />
+
+- Thực hiện deliver exploit tới cho victim, khi trình duyệt của họ load iframe, nó sẽ hoàn thành luồng OAuth sử dụng tài khoản social media của mình và liên kết nó tới tài khoản admin của blog website:
+  
+  <img width="1919" height="929" alt="image" src="https://github.com/user-attachments/assets/e3923c50-5af4-4227-bc92-d82d3a14d041" />
+
+  <img width="1919" height="941" alt="image" src="https://github.com/user-attachments/assets/5007e5d3-47c2-430c-b6bb-354f63662512" />
+
+  <img width="1919" height="877" alt="image" src="https://github.com/user-attachments/assets/b1489c8c-5f96-420c-b870-165cc15ecd06" />
+
+  &rarr; Thành công xóa một user.
+
+
 
   
-
 
 
 
