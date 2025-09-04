@@ -1,4 +1,4 @@
-<img width="1895" height="935" alt="image" src="https://github.com/user-attachments/assets/c338c668-c60a-4cb6-9a5b-34455619b3fa" /># LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
+# LỖ HỔNG OAuth 2.0 authentication (PORTSWIGGER)
 
 ---
 
