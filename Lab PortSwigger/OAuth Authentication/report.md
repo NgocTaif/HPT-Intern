@@ -918,6 +918,8 @@ Khi thực hiện lướt web, chúng ta gần như chắc chắn đã bắt g�
 
 **NOTE:**
 
+- Quá trình client registration (tạo client_id và client_secret) chỉ diễn ra một lần cho client app. Mỗi lần user login → app chỉ sử dụng lại client_id (và client_secret nếu là confidential client) để bắt đầu OAuth flow, tức là OAuth server dựa vào client_id để biết: User đang đang nhập vào một client app nào đã được đăng ký với định danh là client_id.
+
 - DCR = một cơ chế để ứng dụng client tự động đăng ký với OAuth server (thay vì dev phải vào console làm thủ công).
 
 - Ví du: Bạn là user → bạn có Gmail account (user@example.com). Viết app tên là “NoteApp”. Muốn cho user đăng nhập bằng Google → mình phải đăng ký NoteApp với Google OAuth server. Kết quả, Google cấp cho NoteApp:
