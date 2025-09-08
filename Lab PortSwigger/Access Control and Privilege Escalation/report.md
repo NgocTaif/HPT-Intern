@@ -1,4 +1,4 @@
-<img width="1919" height="854" alt="image" src="https://github.com/user-attachments/assets/bccd55d1-c947-43f1-b043-fe93cc729313" /><img width="1919" height="883" alt="image" src="https://github.com/user-attachments/assets/47205c73-40a2-446c-a5f8-5edffdd8cc79" /># Lỗ hổng Access Control and Privilege escalation
+# Lỗ hổng Access Control and Privilege escalation
 
   <img width="781" height="461" alt="image" src="https://github.com/user-attachments/assets/fc25e90c-c41a-4477-81a0-5c886ebc6b80" />
 
