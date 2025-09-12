@@ -249,7 +249,37 @@
 
 **NOTE**: Thử với <svg onload=alert(1)> hay <sctipt></script> thì méo được, chắc do cách server xử lý thẻ tag.
 
+---
 
+### Manipulating the WebSocket handshake to exploit vulnerabilities
+
+- Some WebSockets vulnerabilities can only be found and exploited by manipulating the WebSocket handshake. These vulnerabilities tend to involve design flaws, such as:
+
+  - Misplaced trust in HTTP headers to perform security decisions, such as the X-Forwarded-For header.
+  
+  - Flaws in session handling mechanisms, since the session context in which WebSocket messages are processed is generally determined by the session context of the handshake message.
+
+  - Attack surface introduced by custom HTTP headers used by the application.
+ 
+### Lab Manipulating the WebSocket handshake to exploit vulnerabilities
+
+<img width="1919" height="942" alt="Screenshot 2025-09-11 143429" src="https://github.com/user-attachments/assets/f0de653f-4c05-4f49-bf70-5a634d3baafe" />
+
+<img width="1919" height="937" alt="Screenshot 2025-09-11 143549" src="https://github.com/user-attachments/assets/a3bdbfd8-7d11-4c8f-a511-680efdc42ed9" />
+
+<img width="1918" height="924" alt="Screenshot 2025-09-11 143841" src="https://github.com/user-attachments/assets/cd3eaa21-ba65-495f-bde1-c979ad2a0c35" />
+
+<img width="1919" height="940" alt="Screenshot 2025-09-11 144755" src="https://github.com/user-attachments/assets/1a5a6d76-d839-437f-933a-cec694c91e35" />
+
+<img width="1919" height="1005" alt="Screenshot 2025-09-11 145258" src="https://github.com/user-attachments/assets/7fdf009c-d994-437e-8c63-917e67f16794" />
+
+<img width="1919" height="1012" alt="Screenshot 2025-09-11 145841" src="https://github.com/user-attachments/assets/fb2bf6b4-bb61-4696-8ea4-ca64549c5cd8" />
+
+<img width="1919" height="1006" alt="Screenshot 2025-09-11 145901" src="https://github.com/user-attachments/assets/692b0edd-8e9a-49e6-8450-ed2c8b281713" />
+
+<img width="1919" height="956" alt="Screenshot 2025-09-11 150835" src="https://github.com/user-attachments/assets/22901038-78ac-427e-acef-f808ae02b057" />
+
+<img width="1911" height="875" alt="Screenshot 2025-09-11 150906" src="https://github.com/user-attachments/assets/fae10202-f634-4802-b2a3-86ca685dac14" />
 
   
 
