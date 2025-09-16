@@ -1,4 +1,4 @@
-<img width="1919" height="959" alt="image" src="https://github.com/user-attachments/assets/5a805be6-3eca-4d3d-833a-369b996dc47c" /># Lỗ hổng Cross-origin resource sharing (CORS)
+# Lỗ hổng Cross-origin resource sharing (CORS)
 
 ---
 
