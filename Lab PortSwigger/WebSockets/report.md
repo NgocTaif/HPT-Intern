@@ -281,6 +281,43 @@
 
 <img width="1911" height="875" alt="Screenshot 2025-09-11 150906" src="https://github.com/user-attachments/assets/fae10202-f634-4802-b2a3-86ca685dac14" />
 
-  
+---
 
+### Cross-site WebSocket hijacking
+
+- Cross-site WebSocket hijacking (also known as cross-origin WebSocket hijacking) involves a cross-site request forgery (CSRF) vulnerability on a WebSocket handshake.
+
+- It arises when the WebSocket handshake request relies solely on HTTP cookies for session handling and does not contain any CSRF tokens or other unpredictable values.
+
+- An attacker can create a malicious web page on their own domain which establishes a cross-site WebSocket connection to the vulnerable application. The application will handle the connection in the context of the victim user's session with the application.
+
+- The attacker's page can then send arbitrary messages to the server via the connection and read the contents of messages that are received back from the server. This means that, unlike regular CSRF, the attacker gains two-way interaction with the compromised application.
+
+- Since a cross-site WebSocket hijacking attack is essentially a CSRF vulnerability on a WebSocket handshake, the first step to performing an attack is to review the WebSocket handshakes that the application carries out and determine whether they are protected against CSRF.
+
+- In terms of the normal conditions for CSRF attacks, you typically need to find a handshake message that relies solely on HTTP cookies for session handling and doesn't employ any tokens or other unpredictable values in request parameters.
+
+- For example, the following WebSocket handshake request is probably vulnerable to CSRF, because the only session token is transmitted in a cookie:
+
+  ```
+  GET /chat HTTP/1.1
+  Host: normal-website.com
+  Sec-WebSocket-Version: 13
+  Sec-WebSocket-Key: wDqumtseNBJdhkihL6PW7w==
+  Connection: keep-alive, Upgrade
+  Cookie: session=KOsEJNuflw4Rd9BDNrVmvwBF9rEijeE2
+  Upgrade: websocket
+  ```
+
+  NOTE: The Sec-WebSocket-Key header contains a random value to prevent errors from caching proxies, and is not used for authentication or session handling purposes.
+
+### Lab: Cross-site WebSocket hijacking
+
+- Tương tự các bài lab trước, ta cần để ý chức năng Live chat của website shopping này:
+  
+  <img width="1919" height="932" alt="image" src="https://github.com/user-attachments/assets/20d1d4f9-8baa-4c3a-b8d9-06f6d5244875" />
+
+- Thực hiện gửi một message bất kỳ lên live chat. Sau đó load lại trang Live chat.
+
+- Tiến hành kiểm tra trong WebSocket history của Burp Suite, ta nhận thấy có điểm đặc biết là client app gửi một lệnh là "READY" lên server để lấy lại 
 
