@@ -1,1 +1,106 @@
+# Bug WebSockets basic
 
+---
+
+## WebSockets là gì?
+
+- WebSockets là một giao thức truyền thông hai chiều, full duplex được khởi tạo qua HTTP.
+  
+- Chúng thường được sử dụng trong các ứng dụng web hiện đại để truyền tải dữ liệu và các lưu lượng không đồng bộ khác.
+
+---
+
+## Sự khác biệt giữa HTTP và WebSockets
+
+- HTTP:
+
+  - Cơ chế: request → response, client - server, xong là hết, 1 giao dịch (transaction) độc lập. Mỗi lần cần dữ liệu mới, client phải gửi request mới. Kể cả khi connection TCP còn mở (HTTP keep-alive), thì nó vẫn chỉ phục vụ từng request → response riêng lẻ.
+ 
+- WebSockets:
+
+  - Cơ chế: ban đầu cũng đi qua HTTP (handshake). Sau đó “nâng cấp” connection thành WebSocket.
+ 
+  - Đặc điểm:
+
+    - Connection lâu dài (long-lived).
+    
+    - 2 chiều (full-duplex): cả client và server đều có thể gửi message bất kỳ lúc nào, không cần chờ request.
+   
+    - Không mang tính “transaction” request/response như HTTP.
+
+    - Rất hiệu quả khi cần real-time.
+   
+  - Ví dụ:
+ 
+    - Ứng dụng chứng khoán: server push giá cổ phiếu ngay khi thay đổi.
+
+    - Chat app: tin nhắn từ bạn bè hiển thị tức thì, không cần polling.
+   
+---
+
+## Kết nối Websocket được thiết lập như thế nào?
+
+- Kết nối WebSocket thường được tạo ra bằng cách sử dụng JavaScript phía client như sau:
+
+  ```
+  var ws = new WebSocket("wss://normal-website.com/chat");
+  ```
+
+  Giao thức ws thiết lập WebSockets sử dụng một kết nối không được mã hóa. Còn wss sử dụng TLS.
+
+- Để thiết lập kết nối, trình duyệt và máy chủ thực hiện một cuộc bắt tay WebSocket qua HTTP. Trình duyệt phát đi một yêu cầu bắt tay WebSocket như sau:
+
+  ```http
+  GET /chat HTTP/1.1
+  Host: normal-website.com
+  Sec-WebSocket-Version: 13
+  Sec-WebSocket-Key: wDqumtseNBJdhkihL6PW7w==
+  Connection: keep-alive, Upgrade
+  Cookie: session=KOsEJNuflw4Rd9BDNrVmvwBF9rEijeE2
+  Upgrade: websocket
+  ```
+
+  Nếu server chấp nhận kết nối, nó sẽ trả về một phản hồi WebSocket handshake như sau:
+
+  ```http
+  HTTP/1.1 101 Switching Protocols
+  Connection: Upgrade
+  Upgrade: websocket
+  Sec-WebSocket-Accept: 0FFP+2nmNIf/h+4BP36k9uzrYGk=
+  ```
+
+  Tại thời điểm này, kết nối mạng vẫn đang mở và có thể được sử dụng để gửi các tin nhắn WebSocket theo cả hai hướng.
+
+**NOTE**:
+
+- Một vài đặc điểm của WebSocket handshake messages đáng chú ý:
+
+  - Các header như Connection và Upgrade trong cả request và response cho biết rằng đây là một cuộc bắt tay WebSocket.
+ 
+  - Header Sec-WebSocket-Version request chỉ định phiên bản giao thức WebSocket mà client muốn sử dụng. Thông thường, đây là phiên bản 13.
+ 
+  - Header Sec-WebSocket-Key request chứa một giá trị ngẫu nhiên được mã hóa Base64, cái mà nên được tạo ngẫu nhiên trong mỗi yêu cầu bắt tay.
+ 
+  - Header Sec-WebSocket-Accept request chứa một mã hash của giá trị được gửi trong header Sec-WebSocket-Key request, nối với một chuỗi cụ thể được định nghĩa trong đặc       tả giao thức. Điều này được thực hiện để ngăn chặn các phản hồi gây hiểu lầm do cấu hình sai máy chủ hoặc lưu trữ proxy.
+
+---
+
+## WebSocket messages trông như thế nào?
+
+- Khi một kết nối WebSocket đã được thiết lập, các tin nhắn có thể được gửi không đồng bộ theo cả hai hướng bởi máy khách hoặc máy chủ.
+
+- Một tin nhắn đơn giản có thể được gửi từ trình duyệt bằng cách sử dụng JavaScript phía máy khách như sau:
+
+  ```
+  ws.send("Peter Wiener");
+  ```
+
+- Về nguyên tắc, tin nhắn WebSocket có thể chứa bất kỳ nội dung hoặc định dạng dữ liệu nào.
+
+- Trong các ứng dụng hiện đại, việc sử dụng JSON để gửi dữ liệu có cấu trúc trong các tin nhắn WebSocket là điều phổ biến.
+
+- Ví dụ, một ứng dụng chatbot sử dụng WebSocket có thể gửi một tin nhắn như sau:
+
+  ```json
+  {"user":"Hal Pline","content":"I wanted to be a Playstation growing up, not a device to answer your inane questions"}
+  ```
