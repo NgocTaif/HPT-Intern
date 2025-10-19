@@ -104,3 +104,43 @@
   ```json
   {"user":"Hal Pline","content":"I wanted to be a Playstation growing up, not a device to answer your inane questions"}
   ```
+
+---
+
+## Tools & Burp extensions hữu ích
+
+```websocat```
+
+- Một công cụ CLI để thiết lập một kết nối raw với websocket (hỗ trợ wss với flag --insecure nếu bạn muốn bypass TLS cert):
+
+  ```bash
+  websocat --insecure wss://10.10.10.10:8000 -v
+  ```
+
+- Hoặc ta cũng có thể sử dụng _websocat_ làm server hoặc relay:
+
+  ```bash
+  websocat -s 0.0.0.0:8000 #Listen in port 8000
+  ```
+
+- Hoặc nếu nhận thấy rằng clients đang kết nối với một HTTP websocket từ mạng cục bộ hiện tại của bạn, bạn có thể thử một cuộc tấn công ARP Spoofing để thực hiện tấn công MitM giữa máy khách và máy chủ. Và một khi client cố gắng kết nối tới bạn, thì bạn có thể sử dụng:
+
+  ```bash
+  websocat -E --insecure --text ws-listen:0.0.0.0:8000 wss://10.10.10.10:8000 -v
+  ```
+
+```STEWS```
+
+- Một bộ công cụ được phát triển để kiểm tra độ an toàn của WebSocket.
+
+- Cung cấp các chức năng:
+
+  - **Discover**: tìm các WebSockets endpoints trên web bằng cách test một danh sách các tên miền.
+ 
+  - **Fingerprint**: xác định server WebSockets nào đang chạy trên endpoints.
+ 
+  - **Vulnerability Detection**: kiểm tra xem máy chủ WebSockets có bị lỗ hổng WebSockets đã biết hay không.
+ 
+- Link github: _https://github.com/PalindromeLabs/STEWS_
+
+
