@@ -143,6 +143,30 @@
 
 ---
 
+## Các lỗ hổng WebSockets phổ biến
+
+### Unencrypted Communications / Sensitive Information Disclosure Over Network
+
+- Cũng giống như giao thức HTTP, có http thông thường và http mã hóa là https. Tương tự như vậy, WebSocket có hai dạng là: `wa` và `wss`.
+
+- Do đó, nếu trình duyệt chạy WebSocket (ws://) chạy trên TCP không mã hoá — giống như HTTP (plaintext) &rarr; Tiềm ẩn rủi ro an toàn: tất cả payload, cookie, token, lệnh truyền qua socket có thể bị lộ, bị bắt (sniff) hoặc sửa (modify) bởi attacker thông qua như MiTM,...
+
+- Ví dụ: nếu một ứng dụng `app.example.com` dùng session cookie để auth và cho phép kết nối tới `ws://app.example.com/chat/abc` (plaintext).
+
+  - Trên mạng: attacker ở cùng mạng Wi-Fi / ISP tạo MITM (ví dụ ARP spoofing trong lab). Vì WS là ở dạng plaintext, attacker bắt gói TCP và nhìn thấy handshake lẫn các WebSocket frames.
+
+  - Nếu quá trình trao đổi WebSocket các dạng data nhạy cảm:
+ 
+    - Handshake headers: Sec-WebSocket-Key, Cookie: session=eyJhbGci...
+
+    - Frame text: {"cmd":"deploy","path":"/var/www","token":"abcd1234"}
+   
+  &rarr; attacker dùng cookie/token để giả danh người dùng hoặc sửa frame để chạy lệnh trái phép.
+
+- Ta có thể test app có hỗ trợ dạng giao tiếp `ws` hay không bằng cách sử dụng các công cụ trực tuyến như: _https://websocket.org/tools/websocket-echo-server_
+
+---
+
 ## Tools & Burp extensions hữu ích
 
 ```websocat```
