@@ -4,7 +4,7 @@
 
 ## WebSockets là gì?
 
-- WebSockets là một giao thức truyền thông hai chiều, full duplex được khởi tạo qua HTTP.
+- WebSockets là một giao thức chho phép tạo kết nối hai chiều (full-duplex) được khởi tạo qua HTTP(S).
   
 - Chúng thường được sử dụng trong các ứng dụng web hiện đại để truyền tải dữ liệu và các lưu lượng không đồng bộ khác.
 
@@ -14,21 +14,23 @@
 
 - HTTP:
 
-  - Cơ chế: request → response, client - server, xong là hết, 1 giao dịch (transaction) độc lập. Mỗi lần cần dữ liệu mới, client phải gửi request mới. Kể cả khi connection TCP còn mở (HTTP keep-alive), thì nó vẫn chỉ phục vụ từng request → response riêng lẻ.
+  - Cơ chế: request → response, client - server, xong là hết, 1 giao dịch (transaction) độc lập. Mỗi lần cần dữ liệu mới, client phải gửi request mới. Kể cả khi connection TCP còn     mở (HTTP keep-alive), thì nó vẫn chỉ phục vụ từng request → response riêng lẻ.
  
 - WebSockets:
 
-  - Cơ chế: ban đầu cũng đi qua HTTP (handshake). Sau đó “nâng cấp” connection thành WebSocket.
+  - Cơ chế: ban đầu khởi tạo (bắt tay) thông qua HTTP(S) trước. Sau đó “nâng cấp” (upgrade) connection thành WebSocket. Tuy nhiên WebSocket sẽ thiết lập một kết nối liên tục. Khi      được kích hoạt, nó cho phép cả hai bên truyền tin nhắn liên tục mà không bị gián đoạn.
  
   - Đặc điểm:
 
-    - Connection lâu dài (long-lived).
+    - Connection lâu dài, giữ kết nối (long-lived).
     
     - 2 chiều (full-duplex): cả client và server đều có thể gửi message bất kỳ lúc nào, không cần chờ request.
    
     - Không mang tính “transaction” request/response như HTTP.
 
     - Rất hiệu quả khi cần real-time.
+   
+  &rarr; WebSockets = mở 1 đường dây call giữa browser ↔ server và giữ máy luôn “on call” để chat real-time.
    
   - Ví dụ:
  
@@ -50,7 +52,7 @@
 
   Giao thức ws thiết lập WebSockets sử dụng một kết nối không được mã hóa. Còn wss sử dụng TLS.
 
-- Để thiết lập kết nối, trình duyệt và máy chủ thực hiện một cuộc bắt tay WebSocket qua HTTP. Trình duyệt phát đi một yêu cầu bắt tay WebSocket như sau:
+- Để thiết lập kết nối, trình duyệt client và máy chủ thực hiện một cuộc bắt tay WebSocket qua HTTP. Trình duyệt phát đi một yêu cầu bắt tay WebSocket như sau:
 
   ```http
   GET /chat HTTP/1.1
@@ -73,12 +75,15 @@
 
   &rarr; Một phản hồi với mã trạng thái 101 cho biết rằng máy chủ đã xác nhận kết nối, cho phép WebSocket được khởi tạo. Dữ liệu trao đổi có thể ở nhiều định dạng khác     nhau (HTML, JSON, văn bản, v.v.).
 
-  &rarrr; Tại thời điểm này, kết nối mạng vẫn đang mở và có thể được sử dụng để gửi các tin nhắn WebSocket theo cả hai hướng.
+  &rarr; Tại thời điểm này, kết nối mạng vẫn đang mở và có thể được sử dụng để gửi các tin nhắn WebSocket theo cả hai hướng.
+
+  Ví dụ về một GET request WebSocket handshake:
+
+  <img width="1335" height="652" alt="image" src="https://github.com/user-attachments/assets/20e991b1-7044-4482-bf79-23c445bc54bd" />
 
 - Về tổng quan, quá trình diễn ra theo một flows như sau:
 
   <img width="680" height="483" alt="image" src="https://github.com/user-attachments/assets/ffe7275e-006d-48d5-b741-58769e482559" />
-
 
 **NOTE**:
 
@@ -113,6 +118,28 @@
   ```json
   {"user":"Hal Pline","content":"I wanted to be a Playstation growing up, not a device to answer your inane questions"}
   ```
+
+- Một công cụ phổ biến cho phép thực hiện tương tác với các message WebSocket là: **Burp Suite**
+
+- Công cụ cho phép ta thực hiện: chặn bắt, xem, phân tích và repeat lại các request/message WebSocket, tương đồng như giao thức HTTP:
+
+  - _**Proxy &rarr; WebSockets history**_: Ta có thể xem, phân tích các message Websocket của ứng dụng trong toàn bộ quá trình giao tiếp client-server.
+ 
+    <img width="1914" height="931" alt="image" src="https://github.com/user-attachments/assets/44aa204a-eed9-408c-ade1-22b23f62fb6d" />
+  
+    <img width="1919" height="922" alt="image" src="https://github.com/user-attachments/assets/36511c3e-be7a-49b4-8deb-585f0d61ca0a" />
+
+  - _**Proxy &rarr; Intercept**_: Ta có thể chặn bắt, sửa đổi trước khi forward lại cho client hay server xử lý.
+ 
+    <img width="1919" height="926" alt="image" src="https://github.com/user-attachments/assets/fc69974a-037b-4335-8b05-8a48e914b3f3" />
+
+    <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/4c22313d-8d4a-4469-b05e-442e81e35c29" />
+
+  - _**Repeater WebSocket**_: Tương đồng như HTTP, ta cũng có thể repeat các request/message WebSocket để sửa đổi và replay lại chúng
+ 
+    <img width="1919" height="923" alt="image" src="https://github.com/user-attachments/assets/1f315f65-0fa5-437c-972c-fbbef66ff336" />
+
+    &rarr; Giao diện sẽ hơi khác, bên trái panel ta có thể sửa data và chọn gửi cho client hay server, còn bên phải panel hiển thị request/message đã gửi và phản hồi từ server.
 
 ---
 
