@@ -177,7 +177,7 @@
  
     <img width="1536" height="950" alt="image" src="https://github.com/user-attachments/assets/83fbe7c7-060d-4cfe-a99e-87b68a49fec4" />
 
-  - **Vulnerability Detection**: kiểm tra xem máy chủ WebSockets có bị lỗ hổng WebSockets đã biết hay không, ví dụ như: CSWSH, ... cũng như các CVE khác nhau tùy thuộc       vào các thư viện được phát hiện.
+  - **Vulnerability Detection**: kiểm tra xem máy chủ WebSockets có bị lỗ hổng WebSockets đã biết hay không, ví dụ như: CSWSH, ... cũng như các CVE khác nhau tùy thuộc vào các thư viện được phát hiện.
  
     <img width="1536" height="587" alt="image" src="https://github.com/user-attachments/assets/b8d5a1e1-3928-4132-a3f2-9edd10c6cdb6" />
  
