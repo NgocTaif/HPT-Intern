@@ -35,6 +35,8 @@
     - Ứng dụng chứng khoán: server push giá cổ phiếu ngay khi thay đổi.
 
     - Chat app: tin nhắn từ bạn bè hiển thị tức thì, không cần polling.
+
+**NOTE**: _Tuy nhiên có một điểm đáng chú ý giữa chúng là giống như HTTP, WebSocket không có cơ chế bảo mật tích hợp. Do đó, việc triển khai các biện pháp bảo vệ cần thiết ở cấp ứng dụng phụ thuộc vào nhà phát triển._
    
 ---
 
@@ -69,7 +71,14 @@
   Sec-WebSocket-Accept: 0FFP+2nmNIf/h+4BP36k9uzrYGk=
   ```
 
-  Tại thời điểm này, kết nối mạng vẫn đang mở và có thể được sử dụng để gửi các tin nhắn WebSocket theo cả hai hướng.
+  &rarr; Một phản hồi với mã trạng thái 101 cho biết rằng máy chủ đã xác nhận kết nối, cho phép WebSocket được khởi tạo. Dữ liệu trao đổi có thể ở nhiều định dạng khác     nhau (HTML, JSON, văn bản, v.v.).
+
+  &rarrr; Tại thời điểm này, kết nối mạng vẫn đang mở và có thể được sử dụng để gửi các tin nhắn WebSocket theo cả hai hướng.
+
+- Về tổng quan, quá trình diễn ra theo một flows như sau:
+
+  <img width="680" height="483" alt="image" src="https://github.com/user-attachments/assets/ffe7275e-006d-48d5-b741-58769e482559" />
+
 
 **NOTE**:
 
@@ -137,9 +146,13 @@
 
   - **Discover**: tìm các WebSockets endpoints trên web bằng cách test một danh sách các tên miền.
  
-  - **Fingerprint**: xác định server WebSockets nào đang chạy trên endpoints.
+  - **Fingerprint**: xác định server WebSockets nào đang chạy trên ứng dụng. Thông tin này rất quan trọng vì có thể xác định CVEs trên server.
  
-  - **Vulnerability Detection**: kiểm tra xem máy chủ WebSockets có bị lỗ hổng WebSockets đã biết hay không.
+    <img width="1536" height="950" alt="image" src="https://github.com/user-attachments/assets/83fbe7c7-060d-4cfe-a99e-87b68a49fec4" />
+
+  - **Vulnerability Detection**: kiểm tra xem máy chủ WebSockets có bị lỗ hổng WebSockets đã biết hay không, ví dụ như: CSWSH, ... cũng như các CVE khác nhau tùy thuộc       vào các thư viện được phát hiện.
+ 
+    <img width="1536" height="587" alt="image" src="https://github.com/user-attachments/assets/b8d5a1e1-3928-4132-a3f2-9edd10c6cdb6" />
  
 - Link github: _https://github.com/PalindromeLabs/STEWS_
 
